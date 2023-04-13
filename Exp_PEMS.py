@@ -107,15 +107,15 @@ class LSTMModel(torch.nn.Module):
         return out
 
 # %%
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-# Apply exponential smoothing to the time serie
-# Define the smoothing parameter alpha
+# Time Series Simple exponential smoothing
 alpha = 0.2
-for i in range(100):
+for i in range(30):
     y = PeMS[PeMS.columns[i]]
-    model = ExponentialSmoothing(y).fit(smoothing_level=alpha)
-    smooth = model.fittedvalues
-    PeMS[PeMS.columns[i]] = smooth
+    smoothed_values = [y[0]]
+    for j in range(1, len(y)):
+        smoothed_value = alpha * y[j] + (1 - alpha) * smoothed_values[-1]
+        smoothed_values.append(smoothed_value)
+    PeMS[PeMS.columns[i]] = smoothed_values
 
 # %%
 import pickle
