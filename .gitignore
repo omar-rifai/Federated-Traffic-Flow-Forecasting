@@ -1,0 +1,8 @@
+./experiment/
+*.pth
+experiment/clusterS1.pkl
+experiment/clusterS5.pkl
+experiment/clusterS10.pkl
+experiment/clusterS15.pkl
+experiment/clusterS1.pkl
+EXP copy.py

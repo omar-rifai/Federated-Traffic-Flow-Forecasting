@@ -246,6 +246,7 @@ for i in [5,10,15]:
             my_dict[j]["model"]=copy.deepcopy(model)
     with open('./experiment/clusterS{}.pkl'.format(i), 'wb') as f:
         pickle.dump(my_dict, f)
+    print('Experiment" + {} +" COMPLETED !'.format(i))
 
 # # Exp using graph
 
