@@ -18,3 +18,15 @@ experiment/clusterS6.pkl
 experiment/clusterS9.pkl
 experiment/metric.pkl
 experiment/newS1.pkl
+experiment/metricclusterGsize1.pkl
+experiment/metricclusterGsize3.pkl
+experiment/metricclusterGsize5.pkl
+experiment/metricclusterGsize6.pkl
+experiment/metricclusterGsize9.pkl
+experiment/metricclusterGsize10.pkl
+experiment/metricclusterGsize15.pkl
+experiment/metricclusterS1.pkl
+experiment/metricclusterS5.pkl
+experiment/metricclusterS10.pkl
+experiment/metricclusterS15.pkl
+experiment/metricnewS1.pkl
