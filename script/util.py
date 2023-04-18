@@ -1,4 +1,3 @@
-# %%
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,7 +11,13 @@ from torch.utils.data import Dataset, DataLoader
 import networkx as nx
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# %%
+def rmspe(y_true, y_pred):
+    EPSILON = 1e-10
+    return (np.sqrt(np.mean(np.square((y_true - y_pred) / (y_true + EPSILON)))) * 100)
+
+def maape(y_true,y_pred):
+    return (np.mean(np.arctan(np.abs((y_true - y_pred) / (y_true ))))*100)
+
 def create_graph(df):
     """
     create_graph(df)
@@ -82,16 +87,16 @@ class LSTMModel(torch.nn.Module):
         return out
 
 # %%
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
-def ExpSmooth(PeMS,alpha=0.2):
+def ExpSmooth(df,alpha=0.2):
     # Apply exponential smoothing to the time serie
-    for i in range(len(PeMS.columns)):
-        y = PeMS[PeMS.columns[i]]
-        model = ExponentialSmoothing(y).fit(smoothing_level=alpha)
-        smooth = model.fittedvalues
-        PeMS[PeMS.columns[i]] = smooth
-    return PeMS
+    for i in range(100):
+        y = df[df.columns[i]]
+        smoothed_values = [y[0]]
+        for j in range(1, len(y)):
+            smoothed_value = alpha * y[j] + (1 - alpha) * smoothed_values[-1]
+            smoothed_values.append(smoothed_value)
+        df[df.columns[i]] = smoothed_values
+    return df
 
 # %%
 def my_data_loader(data, window_size = 7, stride = 1):
@@ -193,8 +198,6 @@ def train_LSTM(model,train_loader,val_loader, num_epochs = 200):
     best_model.load_state_dict(torch.load('best_model.pth'))
     os.remove("./best_model.pth")
     return best_model
-
-# %%
 
 
 
