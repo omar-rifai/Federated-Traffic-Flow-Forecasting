@@ -73,8 +73,9 @@ def my_metrics_dict(dict, samples = 60):
                 mape = mean_absolute_percentage_error(y_true,y_pred+EPSILON)
                 maape =  np.mean(np.arctan(np.abs((y_true - y_pred) / (y_true + EPSILON))))*100
                 number_of_zero = len(y_true[y_true ==0])
-                metric_dict_multi[j][j+k]={"mae":mae,  "rmse":rmse,"maape":maape,"zero": y_true.min(),"mape":mape }
+                metric_dict_multi[j][j+k]={"mae":mae,"rmse":rmse, "maape":maape, "mape":mape}
     return metric_dict_multi
+
 
 def global_metric_dict(filelist):
     metric_dict = {}
@@ -87,8 +88,16 @@ def global_metric_dict(filelist):
         with open('./experiment/metric{}.pkl'.format(file[:-4]), 'wb') as f:
             pickle.dump(metric_dict, f)
             
-filelist2 = ['clusterS3.pkl','clusterS6.pkl','clusterS9.pkl']
-global_metric_dict(filelist2)
+
+filelist = ['clusterGsize1.pkl',
+ 'clusterGsize3.pkl',
+ 'clusterGsize5.pkl',
+ 'clusterGsize6.pkl',
+ 'clusterGsize9.pkl',
+ 'clusterGsize10.pkl',
+ 'clusterGsize15.pkl']
+
+global_metric_dict(filelist)
 
 
 
