@@ -1,8 +1,31 @@
 
 import torch
 import copy
+from torch.utils.data import Dataset, DataLoader
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
+class TimeSeriesDataset(Dataset):
+    """
+    PyTorch Dataset model with input/target pairs for the LSTM model
+    Defines the sliding window size and stride
+    """
+    
+    def __init__(self, data, window_size=7, stride=1):
+        self.data = data
+        self.window_size = window_size
+        self.stride = stride
+
+    def __len__(self):
+        return len(self.data) - self.window_size
+
+    def __getitem__(self, idx):
+        inputs = self.data[idx : idx+self.window_size]
+        target = self.data[idx+self.window_size]
+        return inputs, target
+
+
 
 
 
