@@ -8,6 +8,9 @@ import copy
 from torch.utils.data import Dataset, DataLoader
 import pickle
 
+import matplotlib.pyplot as plt
+import networkx as nx
+
 flow_file= "./data/PEMS04/pems04.npz"
 csv_file = "./data/PEMS04/distance.csv"
 
@@ -31,10 +34,7 @@ index = pd.date_range(start=start_date, end=end_date, freq=interval)
 PeMS = PeMS.set_index(index)
 
 
-import matplotlib.pyplot as plt
-import networkx as nx
 
-plt.figure(figsize=(13, 5))
 
 # Create a new NetworkX graph object
 G = nx.Graph()
@@ -246,6 +246,7 @@ for i in [5,10,15]:
             my_dict[j]["model"]=copy.deepcopy(model)
     with open('./experiment/clusterS{}.pkl'.format(i), 'wb') as f:
         pickle.dump(my_dict, f)
+    print('Experiment" + {} +" COMPLETED !'.format(i))
 
 # # Exp using graph
 
