@@ -61,6 +61,7 @@ def normalize_data(df_PeMS):
 #TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
     import pickle 
+    
 
     """
     Generates pickled (.pkl) dictionary files with the train/val/test data and an associated model
@@ -127,7 +128,8 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
     with open('./experiment/clusterS{}.pkl'.format(i), 'wb') as f:
         pickle.dump(my_dict, f)
     print('Experiment" + {} +" COMPLETED !'.format(i))
-    
+
+from torch.utils.data import Dataset
 class TimeSeriesDataset(Dataset):
     """
     PyTorch Dataset model with input/target pairs for the LSTM model
@@ -149,6 +151,8 @@ class TimeSeriesDataset(Dataset):
         return inputs, target
     
 def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32):
+    from torch.utils.data import DataLoader
+
     """
     Create a Time Serie DataLoader and format it correctly if CUDA is available GPU else CPU
 
@@ -232,14 +236,14 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     """
 
 
-    flow_file = input_path / 'pems04.npz'
-    csv_file  = input_path / 'distance.csv'
+    flow_file = input_path + 'pems04.npz'
+    csv_file  = input_path + 'distance.csv'
 
     # the flow data is stored in 'data' third dimension
     df_flow = np.load(flow_file)['data'][:,:,0]
     df_distance = pd.read_csv(csv_file)
     
-    dict_flow = { k : df_flow[:,k] for k in range(len(df_flow))}
+    dict_flow = { k : df_flow[:,k] for k in range(df_flow.shape[1])}
 
     df_PeMS = pd.DataFrame(dict_flow)
 
@@ -254,8 +258,8 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
 
 
-def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 100):
-    from utils_graph import create_graph, subgraph_dijkstra
+def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99):
+    from src.utils_graph import create_graph, subgraph_dijkstra
     """
     Filter to n nearest neightbors from 'init_node', sort by mean traffic flow, and normalize and smooth data
 
