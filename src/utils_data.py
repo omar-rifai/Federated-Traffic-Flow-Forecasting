@@ -1,23 +1,23 @@
 
 import src.models as models 
-import utils_graph as gu
+import src.utils_graph as gu
 from pathlib import Path
 import torch 
-
+import pandas as pd
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 
     
-def expSmooth_data(df_PeMS ,alpha=0.2):
+def ExpSmooth(df_PeMS,alpha=0.2):
     
     """
-    Exponential smoothing using the Holt Winters method
+    Simple Exponential smoothing using the Holt Winters method without using statsmodel
     
     Parameters:
     -----------
-    df_PeMs : pd.DataFrame 
+    df_PeMS : pd.DataFrame 
         data to smooth
     alpha : float
         exponential smoothing param
@@ -27,14 +27,15 @@ def expSmooth_data(df_PeMS ,alpha=0.2):
     pd.Dataframe
         Dataframe with the input smoothed
     """
-    from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
+    
     # Apply exponential smoothing to the time serie
     for i in range(len(df_PeMS.columns)):
         y = df_PeMS[df_PeMS.columns[i]]
-        model = ExponentialSmoothing(y).fit(smoothing_level=alpha)
-        smooth = model.fittedvalues
-        df_PeMS[df_PeMS.columns[i]] = smooth
+        smoothed_values = [y[0]]
+        for j in range(1, len(y)):
+            smoothed_value = alpha * y[j] + (1 - alpha) * smoothed_values[-1]
+            smoothed_values.append(smoothed_value)
+        df_PeMS[df_PeMS.columns[i]] = smoothed_values
     return df_PeMS
 
 
@@ -57,6 +58,7 @@ def normalize_data(df_PeMS):
 
     return df_PeMS
 
+#TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
     import pickle 
 
@@ -125,35 +127,94 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
     with open('./experiment/clusterS{}.pkl'.format(i), 'wb') as f:
         pickle.dump(my_dict, f)
     print('Experiment" + {} +" COMPLETED !'.format(i))
+    
+class TimeSeriesDataset(Dataset):
+    """
+    PyTorch Dataset model with input/target pairs for the LSTM model
+    Defines the sliding window size and stride
+    """
+    
+    def __init__(self, data, window_size, stride, target_size=1):
+        self.data = data
+        self.window_size = window_size
+        self.stride = stride
+        self.target_size = target_size
 
+    def __len__(self):
+        return len(self.data) - self.window_size
 
+    def __getitem__(self, idx):
+        inputs = self.data[idx:idx+self.window_size]
+        target = self.data[idx+self.window_size:idx+self.window_size+self.target_size]
+        return inputs, target
+    
+def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32):
+    """
+    Create a Time Serie DataLoader and format it correctly if CUDA is available GPU else CPU
 
+    Parameters
+    ----------
+    data : pd.Dataframe
+        dataframe with all the PeMS data
+    windows_size : int
+        Sliding window use for training
+    stride : int
+        the amount of movement after processing each sliding windows
+    target_size : int 
+        size of the target values of each sliding windows
 
-def createLoaders(df_PeMS, columns, perc_train = 0.7, perc_val = 0.15):
+    """
+    
+    dataset = TimeSeriesDataset(data.values, window_size, stride, target_size)
+    loader = DataLoader(dataset, batch_size, shuffle=False)
+    if torch.cuda.is_available():
+        loader = [(inputs.to(device), targets.to(device)) for inputs, targets in loader]
+    return loader
+
+def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
     """
     Returns torch.DataLoader for train validation and test data
+    
+    Parameters
+    ----------
+    df_PeMs : pd.Dataframe
+        dataframe with all the PeMS data
+    columns : List 
+        List of columns to process
+    windows_size : int
+        Sliding window use for training
+    stride : int
+        the amount of movement after processing each sliding windows
+    target_size : int 
+        size of the target values of each sliding windows
     """
+    
     from torch.utils.data import  DataLoader
-
+    
+    if columns == 0:
+        columns = df_PeMS.columns
+        
     train_len = len(df_PeMS)
 
     train_data= df_PeMS[columns][:int(train_len * perc_train)]
-    val_data =  df_PeMS[columns][:int(train_len * perc_train): int(train_len * (perc_train + perc_val))]
+    val_data =  df_PeMS[columns][int(train_len * perc_train): int(train_len * (perc_train + perc_val))]
     test_data = df_PeMS[columns][int(train_len * (perc_train + perc_val)):]
     
-    train_loader = DataLoader(train_data)
-    val_loader = DataLoader(val_data)
-    test_loader = DataLoader(test_data)
+    train_loader = my_data_loader(train_data, window_size, stride, target_size, batch_size)
+    val_loader = my_data_loader(val_data, window_size, stride, target_size, batch_size)
+    test_loader = my_data_loader(test_data, window_size, stride, target_size, batch_size)
 
     return train_loader, val_loader, test_loader 
 
 
 
-def load_PeMS04_data(input_path: Path = "./data/PEMS04/"):
+def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
     import pandas as pd
     import numpy as np
+    
     """
-    Function to load data from 'npz' and 'csv' files associated with PeMS
+    
+    Function to load traffic flow data from 'npz' and 'csv' files associated with PeMS
 
     Parameters
     ----------
@@ -164,8 +225,10 @@ def load_PeMS04_data(input_path: Path = "./data/PEMS04/"):
     -------
     df_PeMS : pd.Dataframe
         With the flow between two sensors
-    df_disntace:
+    
+    df_distance:
         Dataframe with the distance metrics between sensors
+    
     """
 
 
@@ -217,7 +280,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
     column_order = list(index_mean_flow)
     df_PeMS = df_PeMS.reindex(columns = column_order)
 
-    df_PeMS = expSmooth_data(df_PeMS)
+    df_PeMS = ExpSmooth(df_PeMS)
     df_PeMS = normalize_data(df_PeMS)
 
     return df_PeMS
