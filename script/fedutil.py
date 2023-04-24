@@ -1,6 +1,19 @@
 # %%
-from util import train_LSTM
-from util import my_data_loader
+from script.util import train_LSTM, LSTMModel
+from script.util import my_data_loader
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+from torch.utils.data import Dataset, DataLoader
+import networkx as nx
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # %%
 import copy
@@ -27,11 +40,11 @@ def fedavg(main_model, model_dict, number_of_nodes):
 
 # %%
 #define local dataset for each nodes
-def local_dataset(df, nodes=0,train_len = 0):
+def local_dataset(df, nodes,train_len=0 ):
     if nodes == 0 :
         nodes = len(df.columns)
-    if train_len == 0 : 
-        train_len(len(df))
+    if train_len == 0:
+        train_len= len(df)
     # Define the sliding window size and stride
     window_size = 7
     stride = 1
@@ -40,7 +53,7 @@ def local_dataset(df, nodes=0,train_len = 0):
         # Create datasets and data loaders for training, validation, and test sets
     
         train_data= pd.DataFrame(df.iloc[:,i][:int(train_len*0.7)])
-        val_data =  pd.DataFrame(df.iloc[:,i][:int(train_len*0.7): int(train_len*0.85)])
+        val_data =  pd.DataFrame(df.iloc[:,i][int(train_len*0.7): int(train_len*0.85)])
         test_data = pd.DataFrame(df.iloc[:,i][int(train_len*0.85):])
 
         
@@ -97,22 +110,22 @@ def rmspe(y_true, y_pred):
 # n_nodes = 'number of nodes'
 # main_model = 'Model central'
 # model_dict = init_nodes_dict(n_nodes, main_model) dictionnary of local models
-def fed_training_plan(data_dict,rounds=3,epoch=200):
+def fed_training_plan(data_dict,rounds=3,nodes=3,epoch=200):
     nodes = len(data_dict)
     main_model = LSTMModel(input_size=1, hidden_size=32, num_layers=6, output_size=1)
     model_dict = init_model(nodes,main_model)
     for round in range(1,rounds+1):
         print('INIT ROUND {} :'.format(round))
-        model_dict = send_model(main_model, model_dict, 5)
+        model_dict = send_model(main_model, model_dict, 3)
         for i in range(nodes):
             print('Training node {} for round {}'.format(i, round))
-            model_dict[i] = train_local_model(i,model_dict[i],data_dict[i]['train'], data_dict[i]['val'],epochs)
+            model_dict[i] = train_local_model(i,model_dict[i],data_dict[i]['train'], data_dict[i]['val'],epoch)
             if round ==1:
-                torch.save(main_model.state_dict(), './../fed/local{}.pth'.format(i))
+                torch.save(main_model.state_dict(), './local{}.pth'.format(i))
         print('FedAVG for round {}:'.format(round))
         main_model = fedavg(main_model, model_dict, nodes)
         print('Done')
-        torch.save(main_model.state_dict(), './../fed/model_round_{}.pth'.format(round))
+        torch.save(main_model.state_dict(), './model_round_{}.pth'.format(round))
     print("FedAvg All Rounds Complete !")
 
 # %%

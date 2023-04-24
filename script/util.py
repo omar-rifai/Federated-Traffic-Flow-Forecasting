@@ -76,7 +76,7 @@ class TimeSeriesDataset(Dataset):
 
 # Define your LSTM model here with 6 LSTM layers and 1 fully connected layer
 class LSTMModel(torch.nn.Module):
-    def __init__(self, input_size, hidden_size,output_size, num_layers=6):
+    def __init__(self, input_size,output_size,hidden_size=32, num_layers=6):
         super().__init__()
         self.lstm = torch.nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = torch.nn.Linear(hidden_size, output_size)
@@ -87,9 +87,9 @@ class LSTMModel(torch.nn.Module):
         return out
 
 # %%
-def ExpSmooth(df,alpha=0.2):
+def ExpSmooth(df,n_columns,alpha=0.2):
     # Apply exponential smoothing to the time serie
-    for i in range(100):
+    for i in range(n_columns):
         y = df[df.columns[i]]
         smoothed_values = [y[0]]
         for j in range(1, len(y)):
