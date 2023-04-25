@@ -12,7 +12,7 @@ torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 ### About Federated Learning
 
-Federated learning can be used in different domains such as sentiment analysis [5], cell phone activity tracking [6] and many other cases. Remote clients can be organizations or institutions such as hospitals, or individuals' mobile devices since they contain a multitude of data suitable for learning models such as images taken by the user, his location, notes, applications...
+Federated learning can be used in different domains such as sentiment analysis, cell phone activity tracking and many other cases. Remote clients can be organizations or institutions such as hospitals, or individuals' mobile devices since they contain a multitude of data suitable for learning models such as images taken by the user, his location, notes, applications...
 
 Before each training, only a fixed set of clients is allowed to participate for efficiency reasons, including those who are eligible based on certain heuristics. If we are testing on mobile devices for example, the eligible devices would be those: fully charged, with specific hardware configurations, connected to a reliable and free WiFi network and idle. This is in order to not interrupt the workout if the device is disconnected or runs out of battery, and to minimize the negative impact the local workout could have on the user's experience, e.g. workout time if the device is in use.
 
@@ -24,13 +24,13 @@ Each client then performs a local calculation based on the global state of the s
 
 ![](https://github.com/leahcimali/Federated-Traffic-Flow-Forecasting/blob/main/data/Fed1.png)
 
-FIG 1 : An illustration of Federated Learning Paradigm
+*FIG 1 : An illustration of Federated Learning Paradigm*
 
 Communications between the server and the various clients must be secure [7], efficient, scalable and fault-tolerant, using the SSL (Secure Sockets Layer) protocol for encrypted exchanges between machines. Thus, the risks of eavesdropping or interception are reduced and the confidentiality and protection of user data is guaranteed.
 
 ![](https://github.com/leahcimali/Federated-Traffic-Flow-Forecasting/blob/main/data/Fed2.png)
 
-FIG 2 : A Federated Learning Architecture
+*FIG 2 : A Federated Learning Architecture*
 
 Unlike learning in traditional machine learning models, where train, test, and validation sets are obtained via explicit splits of the data, they are obtained in the case of federated learning by splitting the client devices into three distinct populations. The probability of reusing clients in the test, train or validation sets is very low in a sufficiently large client population.
 
