@@ -120,8 +120,6 @@ def fed_training_plan(data_dict,rounds=3,nodes=3,epoch=200):
         for i in range(nodes):
             print('Training node {} for round {}'.format(i, round))
             model_dict[i] = train_local_model(i,model_dict[i],data_dict[i]['train'], data_dict[i]['val'],epoch)
-            if round ==1:
-                torch.save(main_model.state_dict(), './local{}.pth'.format(i))
         print('FedAVG for round {}:'.format(round))
         main_model = fedavg(main_model, model_dict, nodes)
         print('Done')

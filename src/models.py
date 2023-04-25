@@ -40,7 +40,7 @@ class GRUModel(torch.nn.Module):
 
 
 import os
-def train_model(model,train_loader,val_loader, num_epochs = 200, model_path = './'):
+def train_model(model,train_loader,val_loader, model_path, num_epochs = 200, remove = False ):
     # Train your model and evaluate on the validation set
     # Define the loss function and optimizer
     criterion = torch.nn.MSELoss()
@@ -73,11 +73,12 @@ def train_model(model,train_loader,val_loader, num_epochs = 200, model_path = '.
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), model_path + 'best_model.pth')
+            torch.save(model.state_dict(), model_path)
         print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}')
     best_model =  copy.deepcopy(model)
-    best_model.load_state_dict(torch.load(model_path +'best_model.pth'))
-    os.remove(model_path + "best_model.pth")
+    best_model.load_state_dict(torch.load(model_path))
+    if remove:
+        os.remove(model_path)
     return best_model
 
 
