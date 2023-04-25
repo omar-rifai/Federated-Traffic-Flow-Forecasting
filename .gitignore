@@ -1,5 +1,9 @@
 /Other/*
 /experiment/*
+/script/*
 *.pth
-EXP copy.py
+*.pkl
+EXP_py.py
 
+
+.gitignore
