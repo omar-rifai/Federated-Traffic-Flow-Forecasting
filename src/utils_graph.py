@@ -1,4 +1,3 @@
-
 def create_graph(graph_df):
 
     import networkx as nx
@@ -31,8 +30,6 @@ def create_graph(graph_df):
     return G 
     
 
-
-
 def subgraph_dijkstra(G, node, n_neighbors):
 
     import networkx as nx
@@ -50,7 +47,7 @@ def subgraph_dijkstra(G, node, n_neighbors):
     -------
     nx.Graph
         subgraph with n nearest neighbors
-     
+    
     """ 
     # Compute the shortest path from node 0 to all other nodes
     distances = nx.single_source_dijkstra_path_length(G, node)
@@ -61,3 +58,26 @@ def subgraph_dijkstra(G, node, n_neighbors):
     # Construct the subgraph by including only the selected nodes and their edges
     subgraph = G.subgraph(nearest_nodes)
     return subgraph
+
+
+def calculate_laplacian_with_self_loop(matrix):
+    
+    import torch
+    
+    """ 
+    Computes Laplacian matrix normalization.
+
+    matrix : any,
+
+    Returns
+    -------
+    matrix_laplacian
+        matrix compute with Laplacian matrix normalization.
+    
+    """ 
+    matrix = matrix + torch.eye(matrix.size(0))
+    row_sum = matrix.sum(1)
+    d_inv_sqrt = torch.pow(row_sum, -0.5).flatten()
+    d_inv_sqrt[torch.isinf(d_inv_sqrt)] = 0.0
+    d_mat_inv_sqrt = torch.diag(d_inv_sqrt)
+    return matrix.matmul(d_mat_inv_sqrt).transpose(0, 1).matmul(d_mat_inv_sqrt)
