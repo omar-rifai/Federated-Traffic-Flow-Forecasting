@@ -13,7 +13,6 @@ def create_graph(graph_df):
     nx.Graph 
     """
 
-
     G = nx.Graph()
 
     # Iterate over each row in the DataFrame and add nodes and edges to the graph
@@ -81,7 +80,7 @@ def compute_laplacian_with_self_loop(matrix):
     return matrix.matmul(d_mat_inv_sqrt).transpose(0, 1).matmul(d_mat_inv_sqrt)
 
 
-def compute_adjacency_matrix(graph):
+def compute_adjacency_matrix(graph, nodes_order):
     import networkx as nx
     """
     Computes adjacency matrix.
@@ -96,4 +95,4 @@ def compute_adjacency_matrix(graph):
         an adjacency matrix
 
     """
-    return nx.adjacency_matrix(graph, weight=None).toarray()
+    return nx.adjacency_matrix(graph, nodelist=nodes_order, weight=None).toarray()
