@@ -1,5 +1,4 @@
 def create_graph(graph_df):
-
     import networkx as nx
     """
     Create a graph from the PeMS distance.csv file (using the from/to adjacency information) 
@@ -31,9 +30,7 @@ def create_graph(graph_df):
     
 
 def subgraph_dijkstra(G, node, n_neighbors):
-
     import networkx as nx
-
     """ 
     Computes a subgraph by selecting the n nearest neighbors
 
@@ -60,14 +57,14 @@ def subgraph_dijkstra(G, node, n_neighbors):
     return subgraph
 
 
-def calculate_laplacian_with_self_loop(matrix):
-    
+def compute_laplacian_with_self_loop(matrix):
     import torch
-    
-    """ 
+    """
     Computes Laplacian matrix normalization.
 
-    matrix : any,
+    Parameters
+    -------
+    matrix : any
 
     Returns
     -------
@@ -75,9 +72,28 @@ def calculate_laplacian_with_self_loop(matrix):
         matrix compute with Laplacian matrix normalization.
     
     """ 
+    matrix = torch.Tensor(matrix)
     matrix = matrix + torch.eye(matrix.size(0))
     row_sum = matrix.sum(1)
     d_inv_sqrt = torch.pow(row_sum, -0.5).flatten()
     d_inv_sqrt[torch.isinf(d_inv_sqrt)] = 0.0
     d_mat_inv_sqrt = torch.diag(d_inv_sqrt)
     return matrix.matmul(d_mat_inv_sqrt).transpose(0, 1).matmul(d_mat_inv_sqrt)
+
+
+def compute_adjacency_matrix(graph):
+    import networkx as nx
+    """
+    Computes adjacency matrix.
+
+    Parameters
+    -------
+    graph : networkX graph
+
+    Returns
+    -------
+    adjacency matrix : array
+        an adjacency matrix
+
+    """
+    return nx.adjacency_matrix(graph, weight=None).toarray()
