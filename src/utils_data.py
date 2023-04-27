@@ -8,8 +8,6 @@ import pandas as pd
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-
-    
 def ExpSmooth(df_PeMS,alpha=0.2):
     
     """
@@ -287,7 +285,6 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
     df_PeMS = df_PeMS[list(graph_nearest.nodes)]
 
     #Sort data hby mean traffic flow
-
     df_sorted= df_PeMS.mean().sort_values()
     index_mean_flow = df_sorted.index
     column_order = list(index_mean_flow)
@@ -295,6 +292,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     df_PeMS = ExpSmooth(df_PeMS)
     df_PeMS = normalize_data(df_PeMS)
-    adjacency_matrix = compute_adjacency_matrix(graph_nearest)
+
+    adjacency_matrix = compute_adjacency_matrix(graph_nearest, column_order)
 
     return df_PeMS, adjacency_matrix
