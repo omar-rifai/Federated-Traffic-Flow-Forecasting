@@ -1,8 +1,8 @@
 
-import src.models as models 
+import src.models as models
 import src.utils_graph as gu
 from pathlib import Path
-import torch 
+import torch
 import pandas as pd
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -259,7 +259,8 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
 
 def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99):
-    from src.utils_graph import create_graph, subgraph_dijkstra
+    from src.utils_graph import create_graph, subgraph_dijkstra, compute_adjacency_matrix
+
     """
     Filter to n nearest neightbors from 'init_node', sort by mean traffic flow, and normalize and smooth data
 
@@ -270,6 +271,14 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     n_neighbors: int
         Number of nearest neighbors to consider
+
+    Returns
+    ----------
+    df_PeMS :
+        PeMS that have been preprocessed
+
+    adjacency_matrix : array
+        the adjacency matrix of PeMS
     """
 
     # Filter nodes to retain only n nearest neighbors
@@ -286,5 +295,6 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     df_PeMS = ExpSmooth(df_PeMS)
     df_PeMS = normalize_data(df_PeMS)
+    adjacency_matrix = compute_adjacency_matrix(graph_nearest)
 
-    return df_PeMS
+    return df_PeMS, adjacency_matrix
