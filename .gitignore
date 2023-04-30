@@ -6,3 +6,7 @@
 EXP_py.py
 Exp_PEMS.py
 .gitignore
+/model (short TS)/*
+/model/*
+Experiment federated 2_cope.ipynb
+metric.pkl
