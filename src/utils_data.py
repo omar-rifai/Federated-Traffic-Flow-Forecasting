@@ -282,7 +282,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
 
 
-def preprocess_PeMS_data_by_mean(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_reduce = False, normalize = False):
+def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_reduce = False, normalize = False,sort_by_mean = True):
     from src.utils_graph import create_graph, subgraph_dijkstra, compute_adjacency_matrix
 
     """
@@ -310,12 +310,14 @@ def preprocess_PeMS_data_by_mean(df_PeMS, df_distance, init_node : int = 0, n_ne
     graph_nearest = subgraph_dijkstra(graph_init, init_node, n_neighbors)
     df_PeMS = df_PeMS[list(graph_nearest.nodes)]
 
-    #Sort data hby mean traffic flow
-    df_sorted= df_PeMS.mean().sort_values()
-    index_mean_flow = df_sorted.index
-    column_order = list(index_mean_flow)
-    df_PeMS = df_PeMS.reindex(columns = column_order)
-    adjacency_matrix = compute_adjacency_matrix(graph_nearest, column_order)
+    #Sort data by mean traffic flow
+    if sort_by_mean:   
+        df_sorted= df_PeMS.mean().sort_values()
+        index_mean_flow = df_sorted.index
+        column_order = list(index_mean_flow)
+        df_PeMS = df_PeMS.reindex(columns = column_order)
+    
+    adjacency_matrix = compute_adjacency_matrix(graph_nearest,list(df_PeMS.columns))
 
     if smooth :
         df_PeMS = ExpSmooth(df_PeMS)
@@ -324,4 +326,5 @@ def preprocess_PeMS_data_by_mean(df_PeMS, df_distance, init_node : int = 0, n_ne
         return df_PeMS, adjacency_matrix, meanstd_dict
     elif normalize :
         df_PeMS = normalize_data(df_PeMS)
+        
     return df_PeMS, adjacency_matrix
