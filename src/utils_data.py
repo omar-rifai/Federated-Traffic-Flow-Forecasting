@@ -39,12 +39,12 @@ def ExpSmooth(df_PeMS,alpha=0.2):
 
 def normalize_data(df_PeMS):
     """
-    Normalize the data diving by the maximum
+    Normalize the data diving by the maximum to put it between 0 and 1
     
     Parameters:
     -----------
     df_PeMs : pd.DataFrame 
-        data to smooth
+        data to normalize
 
     Returns
     -------
@@ -53,8 +53,34 @@ def normalize_data(df_PeMS):
     """
     maximum = df_PeMS.max().max()
     df_PeMS = df_PeMS /  maximum
-
     return df_PeMS
+
+def center_reduce(df):
+    
+    """
+    Center and reduce the data to put it between -1 and 1 with mean 0 and std 1
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame 
+        data to center and reduce
+
+    Returns
+    -------
+    df : pd.Dataframe
+        Dataframe with the input center and reduce
+    meanvar_dict : Dictionary
+        Dictionary containing the initial mean and std to denormalize data
+    """
+
+    meanvar_dict={}
+    for column in df.columns:
+        colmean = df[column].mean()
+        colstd = df[column].std()
+        df[column] = df[column]-colmean
+        df[column] = df[column]/colstd
+        meanvar_dict[column] = {'mean':colmean,'std':colstd}
+    return df, meanvar_dict
 
 #TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
