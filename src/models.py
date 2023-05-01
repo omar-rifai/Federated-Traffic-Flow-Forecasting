@@ -46,6 +46,7 @@ class LSTMModel(torch.nn.Module):
 
 
 class GRUModel(torch.nn.Module):
+    
     """
     Class to define GRU model here with 6 GRU layers and 1 fully connected layer by default
 
@@ -61,6 +62,7 @@ class GRUModel(torch.nn.Module):
     num_layer : int = 6
         number of layer.
     """
+    
     def __init__(self, input_size : int, hidden_size : int, output_size : int, num_layers : int=6):
         super(GRUModel, self).__init__()
         self.hidden_size = hidden_size
@@ -76,6 +78,7 @@ class GRUModel(torch.nn.Module):
 
 
 class TGCNGraphConvolution(torch.nn.Module):
+    
     """
     Class to define TGCNGraphConvolution that is use by class TGCNCell
 
@@ -92,6 +95,7 @@ class TGCNGraphConvolution(torch.nn.Module):
     bias : int = 0.0
         default bias.
     """
+
     def __init__(self, adj, num_gru_units: int, output_dim: int, bias: float = 0.0):
         super(TGCNGraphConvolution, self).__init__()
         self._num_gru_units = num_gru_units
@@ -156,6 +160,7 @@ class TGCNGraphConvolution(torch.nn.Module):
 
 
 class TGCNCell(torch.nn.Module):
+    
     """
     Class to define TGCNCell that is use by class TGCN
 
@@ -172,6 +177,7 @@ class TGCNCell(torch.nn.Module):
     num_layer : int = 1
         number of layer.
     """
+
     def __init__(self, adj, input_dim: int, hidden_dim: int, num_layer : int = 1):
         super(TGCNCell, self).__init__()
         self._input_dim = input_dim
@@ -212,6 +218,7 @@ class TGCNCell(torch.nn.Module):
 
 
 class TGCN(torch.nn.Module):
+    
     """
     Class to define TGCN
 
@@ -228,6 +235,7 @@ class TGCN(torch.nn.Module):
     num_layer : int = 1
         number of layer.
     """
+    
     def __init__(self, adjacency_matrix, hidden_dim: int=64, output_size: int=1, num_layer : int= 1):
         super(TGCN, self).__init__()
         self._input_dim = adjacency_matrix.shape[0]
@@ -266,6 +274,7 @@ class TGCN(torch.nn.Module):
 
 import os
 def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, remove = False):
+    
     """
     Train a model
 
@@ -288,8 +297,8 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
 
     remove : bool=False
         Remove the model after the training phase.
-
     """
+
     # Train your model and evaluate on the validation set
     # Define the loss function and optimizer
     criterion = torch.nn.MSELoss()
@@ -332,8 +341,9 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
 
 
 def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion = torch.nn.MSELoss(), percentage_error_fix = 1):
-    from src.metrics import rmse, rmspe, maape
+    from src.metrics import rmse, rmspe, maape, mape 
     from sklearn.metrics import mean_absolute_error
+
     """
     Test model using test data
 
@@ -360,18 +370,18 @@ def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion =
 
     y_true : array
         actual values to compare to the prediction
-
-    rmse_val: 
-        Root mean square error calculate between y_pred and y_true
-
-    rmspe_val:
-        Root mean square percentage error calculate between y_pred and y_true    
-
-    mae_val:
-        Mean absolute error calculate between y_pred and y_true
-
-    maape_val:
-        Mean Arctangente percentage error calculate between y_pred and y_true
+    metric_dict : dictionary
+        Contain the following metrics : 
+        rmse_val: 
+            Root mean square error calculate between y_pred and y_true
+        rmspe_val:
+            Root mean square percentage error calculate between y_pred and y_true    
+        mae_val:
+            Mean absolute error calculate between y_pred and y_true
+        mape_val:
+            Mean absolute percentage error calculate between y_pred and y_true
+        maape_val:
+            Mean Arctangente percentage error calculate between y_pred and y_true
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -403,7 +413,9 @@ def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion =
     rmse_val= rmse(y_true,y_pred)
     rmspe_val = rmspe(y_true,y_pred,percentage_error_fix)
     mae_val = mean_absolute_error(y_true ,y_pred)
-    maape_val =  maape(y_true,y_pred,)
+    mape_val = mape(y_true,y_pred,percentage_error_fix)
+    maape_val =  maape(y_true,y_pred,percentage_error_fix)
+    metric_dict = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val}
 
     # Set x and y labels
     if plot : 
@@ -415,4 +427,4 @@ def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion =
         plt.ylabel('Value')
         plt.legend()
         plt.show()
-return y_pred, y_true, rmse_val, rmspe_val, mae_val, maape_val
+return y_pred, y_true, metric_dict
