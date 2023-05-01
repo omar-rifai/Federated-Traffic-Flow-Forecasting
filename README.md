@@ -3,7 +3,8 @@
 ### Associate to Toulouse city Vilagil Project.
 
 Ongoing Project: Vilagil - Data and mobility.
-Application of Federated Learning to urban mobility data. 
+
+Applications of Federated Learning to urban mobility data. 
 
 
 https://www.banquedesterritoires.fr/sites/default/files/2020-11/Toulouse%2C%20Vilagil%20%28Occitanie%29.pdf
