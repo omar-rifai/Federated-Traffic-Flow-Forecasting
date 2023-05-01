@@ -1,6 +1,6 @@
 # %%
-from script.util import train_LSTM, LSTMModel
-from script.util import my_data_loader
+from src.models import train_model, LSTMModel
+from src.utils_data import my_data_loader
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

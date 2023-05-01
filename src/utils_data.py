@@ -79,8 +79,8 @@ def center_reduce(df):
         colstd = df[column].std()
         df[column] = df[column]-colmean
         df[column] = df[column]/colstd
-        meanvar_dict[column] = {'mean':colmean,'std':colstd}
-    return df, meanvar_dict
+        meanstd_dict[column] = {'mean':colmean,'std':colstd}
+    return df, meanstd_dict
 
 #TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
@@ -282,7 +282,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
 
 
-def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99):
+def preprocess_PeMS_data_by_mean(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_reduce = False, normalize = False):
     from src.utils_graph import create_graph, subgraph_dijkstra, compute_adjacency_matrix
 
     """
@@ -315,10 +315,13 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
     index_mean_flow = df_sorted.index
     column_order = list(index_mean_flow)
     df_PeMS = df_PeMS.reindex(columns = column_order)
-
-    df_PeMS = ExpSmooth(df_PeMS)
-    df_PeMS = normalize_data(df_PeMS)
-
     adjacency_matrix = compute_adjacency_matrix(graph_nearest, column_order)
 
+    if smooth :
+        df_PeMS = ExpSmooth(df_PeMS)
+    if center_reduce :
+        df_PeMS, meanstd_dict = center_reduce(df_PeMS)
+        return df_PeMS, adjacency_matrix, meanstd_dict
+    elif normalize :
+        df_PeMS = normalize_data(df_PeMS)
     return df_PeMS, adjacency_matrix

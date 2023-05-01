@@ -427,4 +427,4 @@ def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion =
         plt.ylabel('Value')
         plt.legend()
         plt.show()
-return y_pred, y_true, metric_dict
+    return y_pred, y_true, metric_dict
