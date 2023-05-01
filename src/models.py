@@ -329,3 +329,90 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     if remove:
         os.remove(model_path)
     return best_model
+
+
+def testmodel(best_model,test_loader, path='local.pth', plot =False, criterion = torch.nn.MSELoss(), percentage_error_fix = 1):
+    from src.metrics import rmse, rmspe, maape
+    from sklearn.metrics import mean_absolute_error
+    """
+    Test model using test data
+
+    Parameters
+    ----------
+    best_model : any
+        model to test.
+
+    test_loader : DataLoader
+        Test Dataloader.
+
+    path : string
+        model path to load the model from
+
+    plot : bool=False
+        plot actual vs prediction
+    percentage_error_fix : float
+        Add a float to the time serie for calculation of percentage because of null values 
+    
+    Returns
+    ----------
+    y_pred: array
+        predicted values by the model
+
+    y_true : array
+        actual values to compare to the prediction
+
+    rmse_val: 
+        Root mean square error calculate between y_pred and y_true
+
+    rmspe_val:
+        Root mean square percentage error calculate between y_pred and y_true    
+
+    mae_val:
+        Mean absolute error calculate between y_pred and y_true
+
+    maape_val:
+        Mean Arctangente percentage error calculate between y_pred and y_true
+    """
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    best_model.load_state_dict(torch.load(path))
+    best_model = best_model.to(device)
+    best_model.double()
+    best_model.eval()
+    test_loss = 0.0
+    predictions = []
+    actuals = []
+    # test_data = datadict['test_data']
+    with torch.no_grad():
+        for i, (inputs, targets) in enumerate(test_loader):
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+            x = torch.Tensor(inputs).unsqueeze(1).to(device)
+            y = torch.Tensor(targets).unsqueeze(0).to(device)
+            outputs = best_model(inputs)
+            loss = criterion(outputs, targets)
+            test_loss += loss.item()
+            predictions.append(outputs.cpu().numpy())
+            actuals.append(targets.cpu().numpy())
+    test_loss /= len(test_loader)
+    predictions = np.concatenate(predictions, axis=0)
+    actuals = np.concatenate(actuals, axis=0)
+    
+    y_pred = predictions[:,0]
+    y_true = actuals[:,0]
+    rmse_val= rmse(y_true,y_pred)
+    rmspe_val = rmspe(y_true,y_pred,percentage_error_fix)
+    mae_val = mean_absolute_error(y_true ,y_pred)
+    maape_val =  maape(y_true,y_pred,)
+
+    # Set x and y labels
+    if plot : 
+        plt.figure(figsize=(28, 5))
+        plt.title('Actual vs Prediction')
+        plt.plot(y_true, label='Actuals')
+        plt.plot(y_pred, label='Predictions')
+        plt.xlabel('Time')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.show()
+return y_pred, y_true, rmse_val, rmspe_val, mae_val, maape_val

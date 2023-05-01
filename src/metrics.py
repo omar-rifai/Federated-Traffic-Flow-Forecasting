@@ -18,8 +18,8 @@ def rmse(y_true,y_pred):
 def rmspe(y_true, y_pred, EPSILON=0):
     return (np.sqrt(np.mean(np.square((y_true - y_pred) / (y_true + EPSILON)))) * 100)
 
-def maape(y_true,y_pred):
-    return (np.mean(np.arctan(np.abs((y_true - y_pred) / (y_true ))))*100)
+def maape(y_true,y_pred,EPSILON=0):
+    return (np.mean(np.arctan(np.abs((y_true - y_pred) / (y_true +EPSILON))))*100)
 
 def rmsse(y_true, y_pred):
     # Calculate the numerator (RMSE)
