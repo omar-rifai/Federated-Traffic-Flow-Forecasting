@@ -1,7 +1,8 @@
 # Projet-Vilagil
 ## Application of Federated Learning to urban mobility data. 
-### Associate to Toulouse city Vilagil Project. 
-Ongoing Project. 
+### Associate to Toulouse city Vilagil Project.
+
+Ongoing Project: Vilagil - Data and mobility.
 Application of Federated Learning to urban mobility data. 
 
 
