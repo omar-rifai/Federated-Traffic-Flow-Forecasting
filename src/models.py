@@ -340,7 +340,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     return best_model, train_losses, valid_losses
 
 
-def testmodel(best_model, test_loader, path=None, criterion = torch.nn.MSELoss()):
+def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
     
     import numpy as np
     
@@ -357,7 +357,15 @@ def testmodel(best_model, test_loader, path=None, criterion = torch.nn.MSELoss()
 
     path : string
         model path to load the model from
-
+    
+    meanstd_dict : dictionary
+        if the data were center and reduced
+    
+    sensor_order_list : list
+        List containing the sensor number in order of the data training
+    
+    maximum : float
+        if the data were normalize using maximum value
     
     Returns
     ----------
@@ -387,10 +395,16 @@ def testmodel(best_model, test_loader, path=None, criterion = torch.nn.MSELoss()
             actuals.append(targets.cpu().numpy())
     predictions = np.concatenate(predictions, axis=0)
     actuals = np.concatenate(actuals, axis=0)
-    
-    y_pred = predictions[:]
-    y_true = actuals[:]
-    
+    if meanstd_dict and sensor_order_list :
+        y_pred = predictions[:]*meanstd_dict[sensor_order_list.index(i)]['std']+meanstd_dict[sensor_order_list.index(i)]['mean']
+        y_true = actuals[:]*meanstd_dict[sensor_order_list.index(i)]['std']+meanstd_dict[sensor_order_list.index(i)]['mean']
+    elif maximum :
+        y_pred = predictions[:]*maximum
+        y_true = actuals[:]*maximum
+    else :
+        y_pred = predictions[:]
+        y_true = actuals[:]
+
     return y_true, y_pred
 
 def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
