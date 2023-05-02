@@ -318,7 +318,10 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-            train_losses.append(loss.item())
+
+        train_loss /= len(train_loader)
+        train_losses.append(train_loss)
+        
         val_loss = 0.0
 
         for inputs, targets in val_loader:
@@ -396,11 +399,13 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
     predictions = np.concatenate(predictions, axis=0)
     actuals = np.concatenate(actuals, axis=0)
     if meanstd_dict and sensor_order_list :
-        y_pred = predictions[:]*meanstd_dict[sensor_order_list.index(i)]['std']+meanstd_dict[sensor_order_list.index(i)]['mean']
-        y_true = actuals[:]*meanstd_dict[sensor_order_list.index(i)]['std']+meanstd_dict[sensor_order_list.index(i)]['mean']
+        y_pred = predictions[:]*meanstd_dict[sensor_order_list.index(i)]['std'] + meanstd_dict[sensor_order_list.index(i)]['mean']
+        y_true = actuals[:]*meanstd_dict[sensor_order_list.index(i)]['std'] + meanstd_dict[sensor_order_list.index(i)]['mean']
+    
     elif maximum :
         y_pred = predictions[:]*maximum
         y_true = actuals[:]*maximum
+
     else :
         y_pred = predictions[:]
         y_true = actuals[:]
@@ -428,6 +433,7 @@ def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
         maape_val:
             Mean Arctangente percentage error calculate between y_pred and y_true
     """
+
     metric_dict={}
     for i in range(len(y_pred[0,:])):
         rmse_val= rmse(y_true[i],y_pred[i])
