@@ -44,21 +44,16 @@ class LSTMModel(torch.nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-
 class GRUModel(torch.nn.Module):
     
     """
     Class to define GRU model here with 6 GRU layers and 1 fully connected layer by default
-
     Parameters
     ----------
     input_size : int
-
     hidden_size : int
         number of hidden unit.
-
     output_size : int
-
     num_layer : int = 6
         number of layer.
     """
@@ -81,17 +76,13 @@ class TGCNGraphConvolution(torch.nn.Module):
     
     """
     Class to define TGCNGraphConvolution that is use by class TGCNCell
-
     Parameters
     ----------
     adj : matrix
         adjacency matrix
-
     num_gru_units : int
         number of hidden unit.
-
     output_size : int
-
     bias : int = 0.0
         default bias.
     """
@@ -163,17 +154,13 @@ class TGCNCell(torch.nn.Module):
     
     """
     Class to define TGCNCell that is use by class TGCN
-
     Parameters
     ----------
     adj : matrix
         adjacency matrix
-
     input_dim : int
-
     hidden_dim : int
         number of hidden unit.
-
     num_layer : int = 1
         number of layer.
     """
@@ -221,17 +208,13 @@ class TGCN(torch.nn.Module):
     
     """
     Class to define TGCN
-
     Parameters
     ----------
     adj : matrix
         adjacency matrix
-
     hidden_dim : int
         number of hidden unit.
-
     output_size : int = 1
-
     num_layer : int = 1
         number of layer.
     """
@@ -272,9 +255,10 @@ class TGCN(torch.nn.Module):
         }
 
 
-import os
+
 def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, remove = False):
-    
+    import torch
+    import os
     """
     Train a model
 
@@ -306,25 +290,28 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     best_val_loss = float('inf')
+    
     train_losses = []
+    concated_train_losses = []
     valid_losses = []
     for epoch in range(num_epochs):
         train_loss = 0.0
         for inputs, targets in train_loader:
             optimizer.zero_grad()
-            inputs, targets = inputs.to(device), targets.squeeze().to(device)
+            inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs.float())
             loss = criterion(outputs, targets.float())
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-        train_loss /= len(train_loader)
-        train_losses.append(train_loss)
+            train_losses.append(loss.item())
+        concated_train_loss = train_loss/len(train_loader)
+        concated_train_losses.append(concated_train_loss)
         
         val_loss = 0.0
 
         for inputs, targets in val_loader:
-            inputs, targets = inputs.to(device), targets.squeeze().to(device)
+            inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs.float())
             loss = criterion(outputs, targets.float())
             val_loss += loss.item()            
@@ -339,7 +326,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     best_model.load_state_dict(torch.load(model_path))
     if remove:
         os.remove(model_path)
-    return best_model, train_losses, valid_losses
+    return best_model, concated_train_losses, valid_losses
 
 
 def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):

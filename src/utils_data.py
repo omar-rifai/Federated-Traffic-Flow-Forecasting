@@ -282,7 +282,7 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
 
 
-def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_and_reduce = False, normalize = False,sort_by_mean = True):
+def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_and_reduce = False, normalize = False,sort_by_mean = False):
     from src.utils_graph import create_graph, subgraph_dijkstra, compute_adjacency_matrix
 
     """
