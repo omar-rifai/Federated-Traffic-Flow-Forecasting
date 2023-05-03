@@ -1,6 +1,6 @@
 
-from src.models import LSTMModel
-from src.utils_data import my_data_loader
+from models import LSTMModel
+from utils_data import my_data_loader
 
 import pandas as pd
 import torch

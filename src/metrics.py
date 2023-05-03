@@ -35,7 +35,7 @@ def rmsse(y_true, y_pred):
 
 
 def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
-    from src.metrics import rmse, rmspe, maape, mape 
+    from metrics import rmse, rmspe, maape, mape 
     from sklearn.metrics import mean_absolute_error
     
     """

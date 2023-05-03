@@ -13,7 +13,7 @@ The TGCN model is based on :
 
 import torch
 import copy
-from src.utils_graph import compute_laplacian_with_self_loop
+from utils_graph import compute_laplacian_with_self_loop
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
