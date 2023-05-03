@@ -63,7 +63,7 @@ class GRUModel(torch.nn.Module):
         number of layer.
     """
     
-    def __init__(self, input_size : int,  output_size : int, hidden_size : int=32, num_layers : int=6):
+    def __init__(self, input_size : int,  hidden_size : int, output_size : int,  num_layers : int=6):
         super(GRUModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -318,7 +318,6 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-
         train_loss /= len(train_loader)
         train_losses.append(train_loss)
         
@@ -399,8 +398,11 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
     predictions = np.concatenate(predictions, axis=0)
     actuals = np.concatenate(actuals, axis=0)
     if meanstd_dict and sensor_order_list :
-        y_pred = predictions[:]*meanstd_dict[sensor_order_list.index(i)]['std'] + meanstd_dict[sensor_order_list.index(i)]['mean']
-        y_true = actuals[:]*meanstd_dict[sensor_order_list.index(i)]['std'] + meanstd_dict[sensor_order_list.index(i)]['mean']
+        y_pred = predictions[:]
+        y_true = actuals[:]
+        for k in range(len(sensor_order_list)):
+            y_pred[:,k] =y_pred[:,k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+            y_true[:,k]= y_true[:,k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
     
     elif maximum :
         y_pred = predictions[:]*maximum
