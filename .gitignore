@@ -1,6 +1,7 @@
 /Other/*
 /experiment/*
 /script/*
+__pycache__/
 *.pth
 *.pkl
 EXP_py.py
