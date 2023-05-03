@@ -388,8 +388,8 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
         y_pred = predictions[:]
         y_true = actuals[:]
         for k in range(len(sensor_order_list)):
-            y_pred[:,k] =y_pred[:,k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
-            y_true[:,k]= y_true[:,k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+            y_pred[k] =y_pred[k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+            y_true[k]= y_true[k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
     
     elif maximum :
         y_pred = predictions[:]*maximum
