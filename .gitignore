@@ -10,3 +10,4 @@ Exp_PEMS.py
 /model/*
 Experiment federated 2_cope.ipynb
 metric.pkl
+*.pyc
