@@ -8,7 +8,7 @@ import pandas as pd
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def ExpSmooth(df_PeMS,alpha=0.2):
+def exp_smooth(df_PeMS,alpha=0.2):
     
     """
     Simple Exponential smoothing using the Holt Winters method without using statsmodel
@@ -320,7 +320,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
     adjacency_matrix = compute_adjacency_matrix(graph_nearest,list(df_PeMS.columns))
 
     if smooth :
-        df_PeMS = ExpSmooth(df_PeMS)
+        df_PeMS = exp_smooth(df_PeMS)
     if center_and_reduce :
         df_PeMS, meanstd_dict = center_reduce(df_PeMS)
         return df_PeMS, adjacency_matrix, meanstd_dict
@@ -328,3 +328,15 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
         df_PeMS = normalize_data(df_PeMS)
         
     return df_PeMS, adjacency_matrix
+
+def plot_prediction(y_true, y_pred):
+    import matplotlib.pyplot as plt
+    for i in range(len(y_pred[0,:])):
+        plt.figure(figsize=(30, 5))
+        plt.title(f'Actual vs Prediction for {i}')
+        plt.plot(y_true[:,i],label='Actuals')
+        plt.plot(y_pred[:,i], label='Predictions')
+        plt.xlabel('Time')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.show()
