@@ -5,7 +5,7 @@ from utils_data import my_data_loader
 import pandas as pd
 import torch
 
-from models import train_model
+from src.models import train_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -121,11 +121,11 @@ def fed_training_plan(data_dict, rounds=3, epoch=200):
     
         print('Init round {} :'.format(round))
     
-        model_dict = send_model(main_model, model_dict, 3)
+        model_dict = send_model(main_model, model_dict, nodes)
     
         for i in range(nodes):
             print('Training node {} for round {}'.format(i, round))
-            model_dict[i] = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'model_{i}_round_{round}.pth', epoch)
+            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'model_{i}_round_{round}.pth', epoch)
     
         print('FedAVG for round {}:'.format(round))
     
