@@ -1,62 +1,70 @@
-import torch
-from torch.utils import DataLoader
 
-from pathlib import Path
+import matplotlib.pyplot as plt
 
-from utils_data import load_PeMS04_data, preprocess_PeMS_data, createExperimentsData
-from models import TimeSeriesDataset
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-# Define the sliding window size and stride
-window_size = 7
-stride = 1
-layers = 6
-lengths_cluster = [1,5,10,15]
-experiments_path = Path('./experiment/')
-
-df_PeMS, df_distance  = load_PeMS04_data()
-df_PeMS = preprocess_PeMS_data(df_PeMS, df_distance)
-
-dataset = TimeSeriesDataset(df_PeMS.values, window_size, stride)
-
-loader = DataLoader(dataset, batch_size=32, shuffle=False)
-loader = [(inputs.to(device), targets.to(device)) for inputs, targets in loader]
+from utils_graph import create_graph, subgraph_dijkstra 
+from utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, plot_prediction
+from models import LSTMModel, testmodel
+from fedutil import local_dataset, fed_training_plan
 
 
-#initialize the experiment datasets as pickle object
+from metrics import calculate_metrics 
+
+#Load traffic flow dataframe and graph dataframe from PEMS
+PeMS, distance = load_PeMS04_flow_data()
+
+
+PeMS[118].max()
+
+PeMS2, adjmat, meanstd_dict = preprocess_PeMS_data(PeMS,distance,0,99,True,True,False,False)
+
+meanp= PeMS[118].mean()
+stdp= PeMS[118].std()
+
+G = create_graph(distance)
+subgraph = subgraph_dijkstra(G,0,99)
+PeMS = PeMS[list(subgraph.nodes)]
+
+goodnodes = [118,168,261]
+for i in goodnodes:
+    print("Nodes {} with mean traffic flow : {}".format(i,meanstd_dict[i]['mean']))
+    print("Nodes {} with standard deviation : {}".format(i,meanstd_dict[i]['std']))
+
+import matplotlib.pyplot as plt
 
 
 
+plt.figure(figsize = (40,9))
+plt.plot(PeMS[118])
+plt.plot(PeMS[168])
+plt.plot(PeMS[261])
+plt.title('Our Sensor Traffic Flow')
+plt.show()
 
-for cluster_size in lengths_cluster:
-    
-    
-    createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, overwrite = False)
-   
-   loadExperimentsData(filepath)
+# Federated Learning Experiment
+datadict = local_dataset(PeMS,3)
+main_model = LSTMModel(input_size=1,hidden_size=32,output_size=1, num_layers=6)
 
-def 
-# load the experiment datasets from pickle object 
+PeMS[118].min()
 
-# # Exp using graph
+fed_training_plan(datadict, rounds=50, epoch=50)
 
-#initialize the experiment datasets as pickle object
-for i in [1,5,10,15]:
-   experiment_dataset_subgraph(i,PeMS)
-# iterate on cluster size i
-for i in [1,5,10,15]:
-# load the experiment datasets from pickle object 
-    with open('./experiment/clusterGsize{}.pkl'.format(i), 'rb') as f:
-        my_dict = pickle.load(f)
-        # iterate on number of cluster 100-i+1
-        for j in range(100-i+1):
-            train = my_dict[j]["train"]
-            val = my_dict[j]["val"]
-            model = my_dict[j]["model"]
-            model = train_model(model,train, val)
-            my_dict[j]["model"]=copy.deepcopy(model)
-    with open('/experiment/clusterGsize{}.pkl'.format(i), 'wb') as f:
-        pickle.dump(my_dict, f)
+# Training Local
+from models import LSTMModel, train_model
+train_losses = {}
+val_losses = {}
+for j in range(1):
+    data_dict = datadict[j]
+    new_model, train_losses[j], val_losses[j] = train_model(main_model, data_dict['train'], data_dict['val'], model_path ='./dummy{}.pth'.format(j),num_epochs=200, remove = False)
 
+plt.plot( val_losses[0],label='validation')
+plt.plot(train_losses[0],label= 'train')
+plt.legend()
+plt.show()
 
+y_true, y_pred = testmodel(new_model,data_dict['test'], None, meanstd_dict,sensor_order_list=[118])
+
+y_true, y_pred = testmodel(new_model,data_dict['test'],'local0.pth', meanstd_dict,sensor_order_list=[118])
+
+plot_prediction(y_true,y_pred)
+
+calculate_metrics(y_true,y_pred,1)

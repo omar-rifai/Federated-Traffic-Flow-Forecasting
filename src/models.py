@@ -401,52 +401,7 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
 
     return y_true, y_pred
 
-def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
-    from src.metrics import rmse, rmspe, maape, mape 
-    from sklearn.metrics import mean_absolute_error
-    
-    """
-    percentage_error_fix : float
-        Add a float to the time serie for calculation of percentage because of null values 
 
-        metric_dict : dictionary
-        Contain the following metrics : 
-        rmse_val: 
-            Root mean square error calculate between y_pred and y_true
-        rmspe_val:
-            Root mean square percentage error calculate between y_pred and y_true    
-        mae_val:
-            Mean absolute error calculate between y_pred and y_true
-        mape_val:
-            Mean absolute percentage error calculate between y_pred and y_true
-        maape_val:
-            Mean Arctangente percentage error calculate between y_pred and y_true
-    """
-
-    metric_dict={}
-    for i in range(len(y_pred[0,:])):
-        rmse_val= rmse(y_true[i],y_pred[i])
-        rmspe_val = rmspe(y_true[i],y_pred[i],percentage_error_fix)
-        mae_val = mean_absolute_error(y_true[i],y_pred[i])
-        mape_val = mape(y_true[i],y_pred[i],percentage_error_fix)
-        maape_val =  maape(y_true[i],y_pred[i],percentage_error_fix)
-        if len(y_pred[0,:]) ==1 :
-            metric_dict = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val}
-        else:
-            metric_dict[i] = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val}
-    return metric_dict
-
-def plot_prediction(y_true, y_pred):
-    import matplotlib.pyplot as plt
-    for i in range(len(y_pred[0,:])):
-        plt.figure(figsize=(30, 5))
-        plt.title(f'Actual vs Prediction for {i}')
-        plt.plot(y_true[:,i],label='Actuals')
-        plt.plot(y_pred[:,i], label='Predictions')
-        plt.xlabel('Time')
-        plt.ylabel('Value')
-        plt.legend()
-        plt.show()
 
 
         
