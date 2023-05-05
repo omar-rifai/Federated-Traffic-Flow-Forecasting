@@ -1,11 +1,11 @@
 
-from models import LSTMModel
-from utils_data import my_data_loader
+from src.models import LSTMModel
+from src.utils_data import my_data_loader
 
 import pandas as pd
 import torch
 
-from models import train_model
+from src.models import train_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
