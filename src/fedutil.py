@@ -5,7 +5,7 @@ from utils_data import my_data_loader
 import pandas as pd
 import torch
 
-from src.models import train_model
+from models import train_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
