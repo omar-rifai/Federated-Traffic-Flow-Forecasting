@@ -136,6 +136,11 @@ def fed_training_plan(data_dict, rounds=3, epoch=200):
     
     print("FedAvg All Rounds Complete !")
 
-
+(
+"""
+This is a multi-line comment, but it's enclosed in parentheses to create a tuple.
+It won't have any effect on the execution of your code.
+"""
+)
 
 

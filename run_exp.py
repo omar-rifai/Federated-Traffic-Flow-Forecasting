@@ -28,10 +28,11 @@ normalize = config['normalize']
 sort_by_mean = config['sort_by_mean']
 goodnodes = config['goodnodes']  #[118,168,261]
 number_of_nodes =  config['number_of_nodes']  #[118,168,261]
-model_input =
-model_output = 
-communication_rounds = 
-epochs = 
+model_input = config['model_input']
+model_output = config['model_output']
+communication_rounds = config['communication_rounds']
+epochs = config['epochs']
+
 #Load traffic flow dataframe and graph dataframe from PEMS
 PeMS, distance = load_PeMS04_flow_data()
 
@@ -64,11 +65,14 @@ fed_training_plan(datadict, rounds=communication_rounds, epoch=epochs)
 # plt.plot(train_losses[0],label= 'train')
 # plt.legend()
 # plt.show()
+for j in range(number_of_nodes):
+    print(f'Node {j} for {communication_rounds}')
+    y_true, y_pred = testmodel(main_model, data_dict[j]['test'],f"./model_round_{communication_rounds}.pth", meanstd_dict,sensor_order_list=list(goodnodes[j]))
 
-y_true, y_pred = testmodel(new_model ,data_dict['test'], model, meanstd_dict,sensor_order_list=[118])
+    plot_prediction(y_true,y_pred)
 
-y_true, y_pred = testmodel(new_model,data_dict['test'],'local0.pth', meanstd_dict,sensor_order_list=[118])
+    calculate_metrics(y_true,y_pred,1)
+    y_true, y_pred = testmodel(main,data_dict['test'],f"./model_round_0.pth", meanstd_dict,sensor_order_list=list(goodnodes[j]))
+    plot_prediction(y_true,y_pred)
 
-plot_prediction(y_true,y_pred)
-
-calculate_metrics(y_true,y_pred,1)
+    calculate_metrics(y_true,y_pred,1)

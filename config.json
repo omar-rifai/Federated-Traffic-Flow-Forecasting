@@ -1,0 +1,14 @@
+{
+    "init_node": 0,
+    "n_neighbours": 99,
+    "smooth": true,
+    "center_and_reduce": true,
+    "normalize": false,
+    "sort_by_mean": false,
+    "goodnodes": [118, 168, 261],
+    "number_of_nodes": 3,
+    "model_input": 1,
+    "model_output": 1,
+    "communication_rounds": 1,
+    "epochs": 20
+}
