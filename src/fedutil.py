@@ -1,6 +1,7 @@
 
 from src.models import LSTMModel
-from src.utils_data import my_data_loader
+from src.utils_data import my_data_loader, createLoaders
+
 
 import pandas as pd
 import torch
@@ -70,36 +71,37 @@ def fedavg(main_model, model_dict, number_of_nodes):
 
 
 
-def local_dataset(df, nodes, train_len=0 ):
+def local_dataset(df, nodes, train_len= None, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
     """
     Create datasets and data loaders for training, validation, and test sets
     """
 
     if nodes == 0 :
         nodes = len(df.columns)
-    if train_len == 0:
+    if train_len == None:
         train_len= len(df)
 
     data_dict={}
     for i in range(nodes): 
 
-        train_data= pd.DataFrame(df.iloc[:,i][:int(train_len*0.7)])
-        val_data =  pd.DataFrame(df.iloc[:,i][int(train_len*0.7): int(train_len*0.85)])
-        test_data = pd.DataFrame(df.iloc[:,i][int(train_len*0.85):])
-
+        data= pd.DataFrame(df.iloc[:,i])
+        train, val, test = createLoaders(data,columns =0,perc_train=perc_train,perc_val=perc_val, window_size=window_size, stride=stride,target_size=target_size, batch_size=batch_size)
         
-        data_dict[i]={'train':my_data_loader(train_data),'val':my_data_loader(val_data),'test':my_data_loader(test_data),'test_data':test_data}
+        data_dict[i]={'train':train,'val':val,'test':test}
     return data_dict
 
 
 
 
-def fed_training_plan(data_dict, rounds=3, epoch=200):
+def fed_training_plan(main_model, data_dict, rounds=3, epoch=200):
     """
     Controler function to launch federated learning
     
     Parameters
     ----------
+    main_model: 
+        Define the central node model :
+
     data_dict : Dictionary
       Contains training and validation data for the different FL nodes
 
@@ -114,7 +116,6 @@ def fed_training_plan(data_dict, rounds=3, epoch=200):
     
     nodes = len(data_dict)
     
-    main_model = LSTMModel(input_size=1, hidden_size=32, num_layers=6, output_size=1)
     model_dict = setup_models(nodes,main_model)
     
     for round in range(1,rounds+1):
@@ -125,7 +126,7 @@ def fed_training_plan(data_dict, rounds=3, epoch=200):
     
         for i in range(nodes):
             print('Training node {} for round {}'.format(i, round))
-            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'model_{i}_round_{round}.pth', epoch)
+            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'local{i}_round{round}.pth', epoch, remove = False)
     
         print('FedAVG for round {}:'.format(round))
     

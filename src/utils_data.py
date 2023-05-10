@@ -8,7 +8,7 @@ import torch
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def exp_smooth(df_PeMS,alpha=0.2):
+def exp_smooth(df_PeMS, alpha=0.2):
     
     """
     Simple Exponential smoothing using the Holt Winters method without using statsmodel
@@ -33,7 +33,7 @@ def exp_smooth(df_PeMS,alpha=0.2):
         for j in range(1, len(y)):
             smoothed_value = alpha * y[j] + (1 - alpha) * smoothed_values[-1]
             smoothed_values.append(smoothed_value)
-        df_PeMS[df_PeMS.columns[i]] = smoothed_values
+        df_PeMS.loc[:,df_PeMS.columns[i]] = smoothed_values
     return df_PeMS
 
 
@@ -77,15 +77,15 @@ def center_reduce(df):
     for column in df.columns:
         colmean = df[column].mean()
         colstd = df[column].std()
-        df[column] = df[column]-colmean
-        df[column] = df[column]/colstd
         meanstd_dict[column] = {'mean':colmean,'std':colstd}
+        df.loc[:,column] = df.loc[:,column]-colmean
+        df.loc[:,column] = df.loc[:,column]/colstd
     return df, meanstd_dict
 
 #TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
     import pickle 
-    
+    from src.models import LSTMModel
 
     """
     Generates pickled (.pkl) dictionary files with the train/val/test data and an associated model
@@ -130,7 +130,7 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
         cluster_dict={"size":cluster_size}
 
         for i in nodes_range:
-            model = models.LSTMModel(input_size=cluster_size, hidden_size=32, num_layers=layers, output_size=cluster_size)
+            model = LSTMModel(cluster_size, 32 ,cluster_size, layers)
             train_loader, val_loader, test_loader = createLoaders(df_PeMS, columns,  perc_train, perc_val)
             cluster_dict[i]={"model":model,"train":train_loader,"val":val_loader,"test":test_loader}
 
@@ -321,6 +321,7 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
 
     if smooth :
         df_PeMS = exp_smooth(df_PeMS)
+    
     if center_and_reduce :
         df_PeMS, meanstd_dict = center_reduce(df_PeMS)
         return df_PeMS, adjacency_matrix, meanstd_dict
