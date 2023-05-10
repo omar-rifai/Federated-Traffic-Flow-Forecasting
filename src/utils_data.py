@@ -155,10 +155,7 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
 
 from torch.utils.data import Dataset
 class TimeSeriesDataset(Dataset):
-    """
-    PyTorch Dataset model with input/target pairs for the LSTM model
-    Defines the sliding window size and stride
-    """
+    import numpy as np
     
     def __init__(self, data, window_size, stride, target_size=1):
         self.data = data
@@ -167,12 +164,60 @@ class TimeSeriesDataset(Dataset):
         self.target_size = target_size
 
     def __len__(self):
-        return len(self.data) - self.window_size
+        return (len(self.data) - self.window_size - self.target_size) // self.stride + 1
 
-    def __getitem__(self, idx):
-        inputs = self.data[idx:idx+self.window_size]
-        target = self.data[idx+self.window_size:idx+self.window_size+self.target_size]
-        return inputs, target
+    def __getitem__(self, index):
+        # Calculer le début et la fin de la fenêtre d'entrée
+        start = index * self.stride
+        end = start + self.window_size
+
+        # Extraire les données d'entrée
+        inputs = self.data[start:end]
+
+        # Ajouter du padding ou du troncage si nécessaire pour avoir une taille fixe
+        if len(inputs) < self.window_size:
+            inputs = np.pad(inputs, (0, self.window_size - len(inputs)), 'constant')
+        elif len(inputs) > self.window_size:
+            inputs = inputs[:self.window_size]
+
+        # Convertir les données d'entrée en tenseur PyTorch
+        inputs = torch.from_numpy(inputs).float()
+
+        # Calculer le début et la fin de la fenêtre de sortie
+        start = end
+        end = start + self.target_size
+
+        # Extraire les données de sortie
+        targets = self.data[start:end]
+
+        # Ajouter du padding ou du troncage si nécessaire pour avoir une taille fixe
+        if len(targets) < self.target_size:
+            targets = np.pad(targets, (0, self.target_size - len(targets)), 'constant')
+        elif len(targets) > self.target_size:
+            targets = targets[:self.target_size]
+
+        # Convertir les données de sortie en tenseur PyTorch
+        targets = torch.from_numpy(targets).float()
+        return inputs, targets
+# class TimeSeriesDataset(Dataset):
+#     """
+#     PyTorch Dataset model with input/target pairs for the LSTM model
+#     Defines the sliding window size and stride
+#     """
+    
+#     def __init__(self, data, window_size, stride, target_size=1):
+#         self.data = data
+#         self.window_size = window_size
+#         self.stride = stride
+#         self.target_size = target_size
+
+#     def __len__(self):
+#         return len(self.data) - self.window_size
+
+#     def __getitem__(self, idx):
+#         inputs = self.data[idx:idx+self.window_size]
+#         target = self.data[idx+self.window_size:idx+self.window_size+self.target_size]
+#         return inputs, target
     
 def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32):
     from torch.utils.data import DataLoader
