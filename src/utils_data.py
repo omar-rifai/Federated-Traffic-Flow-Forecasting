@@ -25,15 +25,9 @@ def exp_smooth(df_PeMS, alpha=0.2):
     pd.Dataframe
         Dataframe with the input smoothed
     """
-    
-    # Apply exponential smoothing to the time serie
-    for i in range(len(df_PeMS.columns)):
-        y = df_PeMS[df_PeMS.columns[i]]
-        smoothed_values = [y[0]]
-        for j in range(1, len(y)):
-            smoothed_value = alpha * y[j] + (1 - alpha) * smoothed_values[-1]
-            smoothed_values.append(smoothed_value)
-        df_PeMS.loc[:,df_PeMS.columns[i]] = smoothed_values
+
+    df_PeMS = df_PeMS.ewm(alpha=alpha).mean()
+
     return df_PeMS
 
 
@@ -67,21 +61,14 @@ def center_reduce(df):
 
     Returns
     -------
-    df : pd.Dataframe
+    normalized_df : pd.Dataframe
         Dataframe with the input center and reduce
-    meanvar_dict : Dictionary
-        Dictionary containing the initial mean and std to denormalize data
+
     """
+   
+    normalized_df=(df-df.mean())/df.std()
 
-    meanstd_dict={}
-    for column in df.columns:
-        colmean = df[column].mean()
-        colstd = df[column].std()
-        meanstd_dict[column] = {'mean':colmean,'std':colstd}
-        df.loc[:,column] = df.loc[:,column]-colmean
-        df.loc[:,column] = df.loc[:,column]/colstd
-    return df, meanstd_dict
-
+    return normalized_df
 #TODO
 def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, perc_val = 0.15, subgraph = False, overwrite = False):
     import pickle 
@@ -368,8 +355,8 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
         df_PeMS = exp_smooth(df_PeMS)
     
     if center_and_reduce :
-        df_PeMS, meanstd_dict = center_reduce(df_PeMS)
-        return df_PeMS, adjacency_matrix, meanstd_dict
+        df_PeMS = center_reduce(df_PeMS)
+        return df_PeMS, adjacency_matrix
     elif normalize :
         df_PeMS = normalize_data(df_PeMS)
         

@@ -46,7 +46,7 @@ learning_rate = config['learning_rate']
 
 #Load traffic flow dataframe and graph dataframe from PEMS
 PeMS, distance = load_PeMS04_flow_data()
-PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(PeMS, distance, init_node, n_neighbours, smooth, center_and_reduce, normalize, sort_by_mean)
+PeMS, adjmat = preprocess_PeMS_data(PeMS, distance, init_node, n_neighbours, smooth, center_and_reduce, normalize, sort_by_mean)
 datadict = local_dataset(PeMS[goodnodes],3,len(PeMS[goodnodes]),window_size=window_size,stride=stride, target_size=target_size)
 
 if local_epochs:
