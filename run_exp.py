@@ -57,7 +57,7 @@ if local_epochs:
     for j in range(3):
         local_model = LSTMModel(input_size=1, hidden_size=32, num_layers=6, output_size=1)
         data_dict = datadict[j]
-        new_model, train_losses[j], val_losses[j] = train_model(new_model, data_dict['train'], data_dict['val'], model_path ='./local{}.pth'.format(j), num_epochs=local_epochs, remove = False, learning_rate=0.001)
+        local_model, train_losses[j], val_losses[j] = train_model(local_model, data_dict['train'], data_dict['val'], model_path ='./local{}.pth'.format(j), num_epochs=local_epochs, remove = False, learning_rate=0.001)
 
 # Federated Learning Experiment
 if fed_epochs:

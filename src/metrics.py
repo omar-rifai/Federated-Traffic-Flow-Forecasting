@@ -59,7 +59,8 @@ def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
     Dict
         A dictionary with rmse, rmspe, mae, mape and maape values
     """
-
+    y_true = y_true.reshape(-1,1)
+    y_pred = y_pred.reshape(-1,1)
     metric_dict={}
     for i in range(len(y_pred[0,:])):
         rmse_val= rmse(y_true[i],y_pred[i])

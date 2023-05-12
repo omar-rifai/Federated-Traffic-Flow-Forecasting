@@ -94,6 +94,7 @@ def local_dataset(df, nodes, train_len= None, perc_train = 0.7, perc_val = 0.15,
 
 
 def fed_training_plan(main_model, data_dict, rounds=3, epoch=200):
+    
     """
     Controler function to launch federated learning
     
@@ -126,7 +127,7 @@ def fed_training_plan(main_model, data_dict, rounds=3, epoch=200):
     
         for i in range(nodes):
             print('Training node {} for round {}'.format(i, round))
-            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'local{i}_round{round}.pth', epoch, remove = False)
+            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'./model/local{i}_round{round}.pth', epoch, remove = True)
     
         print('FedAVG for round {}:'.format(round))
     

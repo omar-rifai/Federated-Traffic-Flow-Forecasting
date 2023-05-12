@@ -7,8 +7,12 @@
     "sort_by_mean": false,
     "goodnodes": [118, 168, 261],
     "number_of_nodes": 3,
-    "model_input": 1,
-    "model_output": 1,
-    "communication_rounds": 50,
-    "epochs": 80
+    "window_size": 84,
+    "target_size": 12,
+    "stride" : 1,
+    "communication_rounds" : 50,
+    "local_epochs": 200,
+    "fed_epochs": 50,
+    "learning_rate": 0.001
 }
+

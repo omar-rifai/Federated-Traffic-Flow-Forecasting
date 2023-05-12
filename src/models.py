@@ -342,12 +342,7 @@ def train_model(model, train_loader, val_loader, model_path, num_epochs = 200, r
     
     return best_model, valid_losses, train_losses
 
-
-
 def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
-    
-    import numpy as np
-    
     """
     Test model using test data
 
@@ -379,24 +374,40 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
     y_true : array
         actual values to compare to the prediction
     """
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    import numpy as np
+    
+    # Load the best model and evaluate on the test set
+    criterion = torch.nn.MSELoss()
     if path :
         best_model.load_state_dict(torch.load(path))
-    best_model = best_model.to(device)
     best_model.double()
     best_model.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    best_model.to(device)
+
+    # Evaluate the model on the test set
+    test_loss = 0.0
     predictions = []
     actuals = []
     with torch.no_grad():
-        for i, (inputs, targets) in enumerate(test_loader):
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            x = torch.Tensor(inputs).unsqueeze(1).to(device)
-            y = torch.Tensor(targets).unsqueeze(0).to(device)
-            outputs = best_model(inputs)
-            predictions.append(outputs.cpu().numpy())
+        for inputs, targets in test_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            batch_size, horizon_size, num_nodes = targets.size()
+            final_output = torch.empty((batch_size, 0, num_nodes)).to(device)
+            outputs = best_model(inputs.double())
+            final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
+            for i in range(1, horizon_size):
+                outputs = best_model(torch.cat((inputs[:, i:, :], final_output[:, -1, :].unsqueeze(1)), dim=1))
+                final_output = torch.cat([final_output, outputs.unsqueeze(1)], dim=1)
+            # loss = criterion(final_output, targets)
+            # test_loss += loss.item()
+            # Save the predictions and actual values for plotting later
+            predictions.append(final_output.cpu().numpy())
             actuals.append(targets.cpu().numpy())
+    # test_loss /= len(test_loader)
+    # print(f"Test Loss: {test_loss:.4f}")
+    
+    # Concatenate the predictions and actuals
     predictions = np.concatenate(predictions, axis=0)
     actuals = np.concatenate(actuals, axis=0)
     y_pred = predictions[:]
@@ -412,6 +423,75 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
         y_pred = predictions[:]*maximum
         y_true = actuals[:]*maximum 
     return y_true, y_pred
+
+# def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
+    
+#     import numpy as np
+    
+#     """
+#     Test model using test data
+
+#     Parameters
+#     ----------
+#     best_model : any
+#         model to test.
+
+#     test_loader : DataLoader
+#         Test Dataloader.
+
+#     path : string
+#         model path to load the model from
+    
+#     meanstd_dict : dictionary
+#         if the data were center and reduced
+    
+#     sensor_order_list : list
+#         List containing the sensor number in order of the data training
+    
+#     maximum : float
+#         if the data were normalize using maximum value
+    
+#     Returns
+#     ----------
+#     y_pred: array
+#         predicted values by the model
+
+#     y_true : array
+#         actual values to compare to the prediction
+#     """
+
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#     if path :
+#         best_model.load_state_dict(torch.load(path))
+#     best_model = best_model.to(device)
+#     best_model.double()
+#     best_model.eval()
+#     predictions = []
+#     actuals = []
+#     with torch.no_grad():
+#         for i, (inputs, targets) in enumerate(test_loader):
+#             inputs = inputs.to(device)
+#             targets = targets.to(device)
+#             x = torch.Tensor(inputs).unsqueeze(1).to(device)
+#             y = torch.Tensor(targets).unsqueeze(0).to(device)
+#             outputs = best_model(inputs)
+#             predictions.append(outputs.cpu().numpy())
+#             actuals.append(targets.cpu().numpy())
+#     predictions = np.concatenate(predictions, axis=0)
+#     actuals = np.concatenate(actuals, axis=0)
+#     y_pred = predictions[:]
+#     y_true = actuals[:]
+#     if len(sensor_order_list)>1:
+#         for k in range(len(sensor_order_list)):
+#             y_pred[k] =y_pred[k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+#             y_true[k]= y_true[k]*meanstd_dict[sensor_order_list[k]]['std'] + meanstd_dict[sensor_order_list[k]]['mean']
+#     elif len(sensor_order_list) == 1:
+#         y_pred =y_pred*meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean']
+#         y_true= y_true*meanstd_dict[sensor_order_list[0]]['std'] + meanstd_dict[sensor_order_list[0]]['mean'] 
+#     elif maximum :
+#         y_pred = predictions[:]*maximum
+#         y_true = actuals[:]*maximum 
+#     return y_true, y_pred
 
 
 
