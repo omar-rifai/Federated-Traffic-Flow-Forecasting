@@ -43,6 +43,7 @@ communication_rounds = config['communication_rounds']
 local_epochs = config['local_epochs']
 fed_epochs = config['fed_epochs']
 learning_rate = config['learning_rate']
+model_path = config['model_path']
 
 #Load traffic flow dataframe and graph dataframe from PEMS
 PeMS, distance = load_PeMS04_flow_data()
@@ -57,10 +58,10 @@ if local_epochs:
     for j in range(3):
         local_model = LSTMModel(input_size=1, hidden_size=32, num_layers=6, output_size=1)
         data_dict = datadict[j]
-        new_model, train_losses[j], val_losses[j] = train_model(new_model, data_dict['train'], data_dict['val'], model_path ='./local{}.pth'.format(j), num_epochs=local_epochs, remove = False, learning_rate=0.001)
+        new_model, train_losses[j], val_losses[j] = train_model(new_model, data_dict['train'], data_dict['val'], model_path =f'{model_path}local{j}.pth', num_epochs=local_epochs, remove = False, learning_rate=0.001)
 
 # Federated Learning Experiment
 if fed_epochs:
     main_model = LSTMModel(1,32,1)
-    fed_training_plan(main_model, datadict, communication_rounds, fed_epochs)
+    fed_training_plan(main_model, datadict, communication_rounds, fed_epochs,model_path= model_path)
 

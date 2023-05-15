@@ -93,7 +93,7 @@ def local_dataset(df, nodes, train_len= None, perc_train = 0.7, perc_val = 0.15,
 
 
 
-def fed_training_plan(main_model, data_dict, rounds=3, epoch=200):
+def fed_training_plan(main_model, data_dict, rounds=3, epoch=200, model_path= './'):
     
     """
     Controler function to launch federated learning
@@ -112,6 +112,9 @@ def fed_training_plan(main_model, data_dict, rounds=3, epoch=200):
      
     epoch : int
         Number of training epochs in each round
+
+    model_path : str
+        Define the path where to save the models 
     
     """
     
@@ -127,22 +130,16 @@ def fed_training_plan(main_model, data_dict, rounds=3, epoch=200):
     
         for i in range(nodes):
             print('Training node {} for round {}'.format(i, round))
-            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'./model/local{i}_round{round}.pth', epoch, remove = True)
+            model_dict[i], _ , _ = train_model(model_dict[i], data_dict[i]['train'], data_dict[i]['val'], f'{model_path}local{i}_round{round}.pth', epoch, remove = True)
     
         print('FedAVG for round {}:'.format(round))
     
         main_model = fedavg(main_model, model_dict, nodes)
     
         print('Done')
-        torch.save(main_model.state_dict(), './model_round_{}.pth'.format(round))
+        torch.save(main_model.state_dict(), f'{model_path}model_round_{round}.pth')
     
     print("FedAvg All Rounds Complete !")
 
-(
-"""
-This is a multi-line comment, but it's enclosed in parentheses to create a tuple.
-It won't have any effect on the execution of your code.
-"""
-)
 
 
