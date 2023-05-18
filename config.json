@@ -13,6 +13,7 @@
     "communication_rounds" : 50,
     "local_epochs": 200,
     "fed_epochs": 50,
-    "learning_rate": 0.001
+    "learning_rate": 0.001,
+    "model_path" : "./"
 }
 
