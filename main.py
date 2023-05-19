@@ -21,7 +21,7 @@ if len(sys.argv) != 2:
     sys.exit(1)
 config_file_path = sys.argv[1]
 
-params = src.config.Params(config_file_path)x
+params = src.config.Params(config_file_path)
 
 LSTM_input_size=1, 
 LSTM_hidden_size=32,
