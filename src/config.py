@@ -23,8 +23,8 @@ class Params():
             self.target_size = config['target_size']
             self.stride = config['stride']
             self.communication_rounds = config['communication_rounds']
-            self.local_epochs = config['local_epochs']
-            self.fed_epochs = config['fed_epochs']
+            self.num_epochs_local_no_federation = config['num_epochs_local_no_federation']
+            self.num_epochs_local_federation = config['num_epochs_local_federation']
             self.learning_rate = config['learning_rate']
 
 
