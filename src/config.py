@@ -17,7 +17,7 @@ class Params():
             self.center_and_reduce = config['center_and_reduce']
             self.normalize = config['normalize']
             self.sort_by_mean = config['sort_by_mean']
-            self.goodnodes = config['goodnodes']  #[118,168,261]
+            self.nodes_to_filter = config['nodes_to_filter']  #[118,168,261]
             self.number_of_nodes =  config['number_of_nodes']  #[118,168,261]
             self.window_size = config['window_size']
             self.target_size = config['target_size']
