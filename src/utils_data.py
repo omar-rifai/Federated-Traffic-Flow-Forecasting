@@ -216,7 +216,7 @@ def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window
         size of the target values of each sliding windows
     """
     
-    if columns == 0:
+    if not columns:
         columns = df_PeMS.columns
         
     train_len = len(df_PeMS)
@@ -277,6 +277,44 @@ def load_PeMS04_flow_data(input_path: Path = "./data/PEMS04/"):
 
     return df_PeMS, df_distance
 
+
+def local_dataset(df, nodes, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
+    """
+    Create datasets and data loaders for training, validation, and test sets
+
+    Parameters
+    ---------
+    df : pd.Dataframe
+        A Dataframe with the time series for all the nodes
+    nodes : list
+        A list of columns ids to process
+    """
+
+    import pandas as pd
+    import warnings
+
+    if nodes == 0 or not (nodes in list(df.columns)):
+        warnings.warn("Nodes selected not in dataset or empty filter, processing all nodes")
+        nodes = df.columns
+ 
+    data_dict={}
+    counter = 0 
+
+    for i in nodes: 
+        
+        train, val, test = createLoaders(pd.DataFrame(df.loc[:,i]),
+                                         perc_train = perc_train,
+                                         perc_val = perc_val,
+                                         window_size = window_size,
+                                         stride = stride, 
+                                         target_size = target_size,
+                                         batch_size = batch_size )
+        
+        
+        data_dict[counter]={'train':train,'val':val,'test':test}
+        counter = counter + 1
+
+    return data_dict
 
 
 def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors : int = 99, smooth = True, center_and_reduce = False, normalize = False, sort_by_mean = True):

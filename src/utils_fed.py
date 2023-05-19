@@ -70,27 +70,6 @@ def fedavg(main_model, model_dict, number_of_nodes):
 
 
 
-def local_dataset(df, nodes, train_len= None, perc_train = 0.7, perc_val = 0.15,  window_size = 7, stride = 1, target_size=1, batch_size=32):
-    """
-    Create datasets and data loaders for training, validation, and test sets
-    """
-
-    if nodes == 0 :
-        nodes = len(df.columns)
-    if train_len == None:
-        train_len= len(df)
-
-    data_dict={}
-    for i in range(nodes): 
-
-        data= pd.DataFrame(df.iloc[:,i])
-        train, val, test = createLoaders(data,columns =0,perc_train=perc_train,perc_val=perc_val, window_size=window_size, stride=stride,target_size=target_size, batch_size=batch_size)
-        
-        data_dict[i]={'train':train,'val':val,'test':test}
-    return data_dict
-
-
-
 
 def fed_training_plan(main_model, data_dict, rounds=3, epoch=200, model_path= './'):
     

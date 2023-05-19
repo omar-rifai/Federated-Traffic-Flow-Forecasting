@@ -5,14 +5,14 @@
     "center_and_reduce": true,
     "normalize": false,
     "sort_by_mean": false,
-    "goodnodes": [118, 168, 261],
+    "nodes_to_filter": [118, 168, 261],
     "number_of_nodes": 1,
     "window_size": 84,
     "target_size": 5,
     "stride" : 1,
     "communication_rounds" : 1,
-    "local_epochs": 1,
-    "fed_epochs": 1,
+    "num_epochs_local_no_federation": 1,
+    "num_epochs_local_federation": 1,
     "learning_rate": 0.001,
     "model_path" : "./"
 }
