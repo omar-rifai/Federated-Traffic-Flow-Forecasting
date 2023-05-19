@@ -1,5 +1,3 @@
-
-import src.models as models
 import src.utils_graph as gu
 from pathlib import Path
 import torch
@@ -127,22 +125,9 @@ def createExperimentsData(cluster_size, df_PeMS, layers = 6, perc_train = 0.7, p
     return model, train_loader, val_loader, test_loader
 
 
-    with open('./experiment/clusterS{}.pkl'.format(i), 'rb') as f:
-        my_dict = pickle.load(f)
-        # iterate on number of cluster 100-i+1
-        for j in range(100-i+1):
-            train = my_dict[j]["train"]
-            val = my_dict[j]["val"]
-            model = my_dict[j]["model"]
-            model = train_model(model,train, val)
-            my_dict[j]["model"]=copy.deepcopy(model)
-    with open('./experiment/clusterS{}.pkl'.format(i), 'wb') as f:
-        pickle.dump(my_dict, f)
-    print('Experiment" + {} +" COMPLETED !'.format(i))
-
 from torch.utils.data import Dataset
 class TimeSeriesDataset(Dataset):
-    import numpy as np
+    
     
     def __init__(self, data, window_size, stride, target_size=1):
         self.data = data
@@ -186,25 +171,7 @@ class TimeSeriesDataset(Dataset):
         # Convertir les données de sortie en tenseur PyTorch
         targets = torch.from_numpy(targets).float()
         return inputs, targets
-# class TimeSeriesDataset(Dataset):
-#     """
-#     PyTorch Dataset model with input/target pairs for the LSTM model
-#     Defines the sliding window size and stride
-#     """
-    
-#     def __init__(self, data, window_size, stride, target_size=1):
-#         self.data = data
-#         self.window_size = window_size
-#         self.stride = stride
-#         self.target_size = target_size
 
-#     def __len__(self):
-#         return len(self.data) - self.window_size
-
-#     def __getitem__(self, idx):
-#         inputs = self.data[idx:idx+self.window_size]
-#         target = self.data[idx+self.window_size:idx+self.window_size+self.target_size]
-#         return inputs, target
     
 def my_data_loader(data, window_size = 7, stride = 1,target_size=1,batch_size=32):
     from torch.utils.data import DataLoader
@@ -248,8 +215,6 @@ def createLoaders(df_PeMS, columns=0, perc_train = 0.7, perc_val = 0.15,  window
     target_size : int 
         size of the target values of each sliding windows
     """
-    
-    from torch.utils.data import  DataLoader
     
     if columns == 0:
         columns = df_PeMS.columns
@@ -363,6 +328,12 @@ def preprocess_PeMS_data(df_PeMS, df_distance, init_node : int = 0, n_neighbors 
     return df_PeMS, adjacency_matrix
 
 def plot_prediction(y_true, y_pred):
+
+    """
+    Simple function for a line plot of actual versus prediction values
+
+    """
+
     import matplotlib.pyplot as plt
     for i in range(len(y_pred[0,:])):
         plt.figure(figsize=(30, 5))
