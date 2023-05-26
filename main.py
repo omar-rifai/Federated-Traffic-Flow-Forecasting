@@ -1,14 +1,13 @@
 
 import torch
+import importlib
 
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, plot_prediction
-from src.models import LSTMModel
 from src.utils_training import train_model, testmodel
 from src.utils_fed import fed_training_plan
 from src.metrics import calculate_metrics
 import src.config
 import sys
-
 
 
 seed = 42
@@ -23,10 +22,15 @@ config_file_path = sys.argv[1]
 
 params = src.config.Params(config_file_path)
 
-LSTM_input_size = 1
-LSTM_hidden_size = 32
-LSTM_num_layers = 6
-LSTM_output_size = 1
+module_name = 'src.models'
+class_name = params.model
+module = importlib.import_module(module_name)
+model = getattr(module, class_name)
+
+input_size = 1
+hidden_size = 32
+num_layers = 6
+output_size = 1
 
 
 #Load traffic flow dataframe and graph dataframe from PEMS
@@ -47,14 +51,11 @@ if params.num_epochs_local_no_federation:
     val_losses = {}
 
     for node in range(params.number_of_nodes):
-        local_model = LSTMModel(input_size= LSTM_input_size,
-                                hidden_size= LSTM_hidden_size,
-                                num_layers= LSTM_num_layers,
-                                output_size= LSTM_output_size)
+        local_model = model(input_size, hidden_size, output_size, num_layers)
     
         data_dict = datadict[node]
         local_model, train_losses[node], val_losses[node] = train_model(local_model, data_dict['train'], data_dict['val'], 
-                                                                  model_path ='./local{}.pth'.format(node),
+                                                                  model_path = f'{params.save_model_path}local{node}.pth',
                                                                   num_epochs=params.num_epochs_local_no_federation, 
                                                                   remove = False, learning_rate=params.learning_rate)
         
@@ -66,12 +67,9 @@ if params.num_epochs_local_no_federation:
 
 # # Federated Learning Experiment
 if params.num_epochs_local_federation:
-    main_model = LSTMModel(input_size= LSTM_input_size,
-                            hidden_size= LSTM_hidden_size,
-                            num_layers= LSTM_num_layers,
-                            output_size= LSTM_output_size)
+    main_model = model(input_size, hidden_size, output_size, num_layers)
     
-    model = fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation)
+    model = fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation, model_path = f'{params.save_model_path}',)
     for node in range(params.number_of_nodes):  
         y_true, y_pred = testmodel(local_model,data_dict['test'], meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
         if params.print_metrics:
