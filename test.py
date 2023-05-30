@@ -24,9 +24,7 @@ config_file_path = sys.argv[1]
 
 params = src.config.Params(config_file_path)
 
-path_folder = params.save_model_path.split("/")[:-1]
-new_path = '/'.join(path_folder)
-makedirs(new_path, exist_ok=True)
+makedirs(params.save_model_path, exist_ok=True)
 
 with open(params.save_model_path +'test.txt', 'w') as f:
     with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):
