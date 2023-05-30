@@ -17,8 +17,7 @@
     "learning_rate": 0.001,
     "plot" : false,
     "time_point_to_plot":100,
-    "print_metrics" : false,
     "model": "GRUModel",
-    "save_model_path": ".model/experiments/"
+    "save_model_path": "./model/experiments/"
 }
 
