@@ -32,6 +32,8 @@ def rmsse(y_true, y_pred):
 
     return rmsse
 
+def smape(y_true, y_pred, EPSILON=0):
+    return np.mean(2 * np.abs(y_pred - y_true) / (np.abs(y_true + EPSILON) + np.abs(y_pred + EPSILON)))*100
 
 
 def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
@@ -68,8 +70,9 @@ def calculate_metrics(y_true, y_pred,percentage_error_fix =0):
     mae_val = mean_absolute_error(y_true,y_pred)
     mape_val = mape(y_true,y_pred,percentage_error_fix)
     maape_val =  maape(y_true,y_pred,percentage_error_fix)
+    smape_val = smape(y_true, y_pred, EPSILON=percentage_error_fix)
     
-    metric_dict = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val}
+    metric_dict = {"RMSE":rmse_val, "RMSPE": rmspe_val, "MAE":mae_val,"MAPE":mape_val, "MAAPE": maape_val, "SMAPE": smape_val}
     return metric_dict
 
 
