@@ -6,7 +6,7 @@ import contextlib
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, plot_prediction
 from src.utils_training import train_model, testmodel
 from src.utils_fed import fed_training_plan
-from src.metrics import calculate_metrics, metrics_table
+from src.metrics import calculate_metrics, metrics_table, Percentage_of_Superior_Predictions
 import src.config
 import sys
 
@@ -54,38 +54,20 @@ with open(params.save_model_path +'test.txt', 'w') as f:
         metrics_dict ={}
         for node in range(len(params.nodes_to_filter)):
             metrics_dict[node]={}
-            y_true, y_pred = testmodel(model(1,32,1), datadict[node]['val'], f'{params.save_model_path}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
+            y_true, y_pred = testmodel(model(1,32,1), datadict[node]['test'], f'{params.save_model_path}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
             local_metrics = calculate_metrics(y_true, y_pred)
             metrics_dict[node]['local_only'] = local_metrics
-            for round in range(1, params.communication_rounds+1):
-                y_true_fed, y_pred_fed = testmodel(model(1,32,1), datadict[node]['val'], f'{params.save_model_path}model_round_{round}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
-                fed_metric = calculate_metrics(y_true_fed, y_pred_fed)
-                metrics_dict[node][f'fed_round_{round}'] = fed_metric
-                print(f'Federated vs local only for node {node} :')
-                print(metrics_table({'Local' :local_metrics, f'Federated Round {round}' : fed_metric }))
+
+            y_true_fed, y_pred_fed = testmodel(model(1,32,1), datadict[node]['test'], f'{params.save_model_path}bestmodel_node{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
+            fed_metrics = calculate_metrics(y_true_fed, y_pred_fed)
+            metrics_dict[node][f'Federated'] = fed_metrics
+            print(f'Federated vs local only for node {node} :')
+            fed_metrics['Superior Pred %'], local_metrics['Superior Pred % '] = Percentage_of_Superior_Predictions(y_true, y_pred, y_true_fed, y_pred_fed)
+            print(metrics_table({'Local' :local_metrics, f'Federated' : fed_metrics }))
+            if params.plot : 
+                    plot_prediction(y_true, y_pred, datadict[node]['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Localmodel_{params.num_epochs_local_no_federation}epochs_node_{node}' )
+                    plot_prediction(y_true_fed, y_pred_fed, datadict[node]['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Federatedmodel_{params.num_epochs_local_federation}epochs_node_{node}_round{params.communication_rounds}' )
 
 with open(params.save_model_path + "test.json", "w") as outfile:
     json.dump(metrics_dict, outfile)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
