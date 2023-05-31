@@ -28,7 +28,7 @@ config_file_path = sys.argv[1]
 params = src.config.Params(config_file_path)
 
 makedirs(params.save_model_path, exist_ok=True)
-copy("./config.json", params.save_model_path)
+copy(config_file_path.split("\\")[-1], params.save_model_path + "config.json")
 
 with open(params.save_model_path + 'train.txt', 'w') as f:
     with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):

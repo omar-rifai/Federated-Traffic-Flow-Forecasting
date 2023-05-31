@@ -108,36 +108,9 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     captor = st.selectbox('Choose the captor', mapping_captor_and_node.keys())
 
     local_node = results[mapping_captor_and_node[captor]]["local_only"]
-    local_node = pd.DataFrame(local_node, columns=results[mapping_captor_and_node[captor]]["local_only"].keys(), index=["Local"])
+    local_node = pd.DataFrame(local_node, columns=results[mapping_captor_and_node[captor]]["local_only"].keys(), index=["Captor alone"])
     
-    fed_rounds = [round for round in (results[mapping_captor_and_node[captor]].keys())][1:]
-    
-    for round in fed_rounds:
-        temp = results[mapping_captor_and_node[captor]][round]
-        temp = pd.DataFrame(temp, columns=results[mapping_captor_and_node[captor]][round].keys(), index=[round])
-        st.dataframe(pd.concat((local_node, temp), axis=0), use_container_width=True)
-
-    if len(fed_rounds) > 1 :
-        x = [i+1 for i in range(len(fed_rounds))]
-        y = [results[mapping_captor_and_node[captor]][round]["RMSE"] for round in fed_rounds]
-
+    federated_node = results[mapping_captor_and_node[captor]]["Federated"]
+    federated_node = pd.DataFrame(federated_node, columns=results[mapping_captor_and_node[captor]]["Federated"].keys(), index=["Captor in Federation"])
         
-        y_threshold = results[mapping_captor_and_node[captor]]["local_only"]["RMSE"]
-
-        # Plot x and y arrays and x and y threshold values
-        plt.plot(x, y, label='Fed evolution of the RMSE')
-        plt.plot(x, [y_threshold] * len(x), label=f'Local after {config_json["num_epochs_local_no_federation"]} epoch(s)', linestyle='--', color='red')
-        plt.xticks(np.arange(1, len(x)+1, 1))
-
-
-        # Add labels and title
-        plt.xlabel('Number of Rounds')
-        plt.ylabel('RMSE Value')
-        plt.title('Evolution of the RMSE value round after round')
-
-        # Add legend
-        plt.legend()
-        
-        c1_evolution, c2_evolution, c3_evolution = st.columns((1,2,1))
-        with c2_evolution:
-            st.pyplot(plt)
+    st.dataframe(pd.concat((local_node, federated_node ), axis=0), use_container_width=True)
