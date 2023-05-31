@@ -1,6 +1,7 @@
 ###############################################################################
 # Libraries
 ###############################################################################
+import copy
 import os
 import glob
 
@@ -37,21 +38,6 @@ def filtering_path_file(file_dict, filter_list):
                     filtered_file_dict[key] = [file]
     return filtered_file_dict
 
-
-# def compute_percentage_change(df, metric):
-#     df_final = pd.DataFrame()
-#     df_index = df.index
-#     for index_one in df_index:
-#         for index_two in df_index:
-#             if(index_one != index_two):
-#                 temp = \
-#                 pd.DataFrame(
-#                     (((final_results_groupby_captor.loc[index_one].loc[metric] - final_results_groupby_captor.loc[index_two].loc[metric]) / (final_results_groupby_captor.loc[index_two].loc[metrics_ratio]).abs()) * 100)).T
-#                 temp.index = [f"(({index_one} - {index_two}) / {index_two}) * 100"]
-#                 temp.index.name = f"{metric}"
-#                 temp = temp[["mean","std"]]
-#                 df_final = pd.concat([df_final, temp],axis=0) 
-#     return df_final
 
 key_config_json = \
 [
@@ -98,4 +84,60 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
 
     path_results = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
-    st.write(path_results)
+
+    with open(f"{path_results}/test.json") as f:
+        results = json.load(f)
+    
+    def dataframe_results(dict_results, node):
+        results = []
+        captors = []
+        for key in dict_results[node].keys():
+            results.append(dict_results[node][key])
+            captors.append(config_json["nodes_to_filter"][int(node)])
+
+        df = pd.DataFrame(results)
+        df.insert(0, "Captor", captors, True)
+        df = df.set_index("Captor")
+        return df
+
+    nodes = results.keys()
+    mapping_captor_and_node = {}
+    for node in results.keys():
+        mapping_captor_and_node[config_json["nodes_to_filter"][int(node)]] = node
+        
+    captor = st.selectbox('Choose the captor', mapping_captor_and_node.keys())
+
+    local_node = results[mapping_captor_and_node[captor]]["local_only"]
+    local_node = pd.DataFrame(local_node, columns=results[mapping_captor_and_node[captor]]["local_only"].keys(), index=["Local"])
+    
+    fed_rounds = [round for round in (results[mapping_captor_and_node[captor]].keys())][1:]
+    
+    for round in fed_rounds:
+        temp = results[mapping_captor_and_node[captor]][round]
+        temp = pd.DataFrame(temp, columns=results[mapping_captor_and_node[captor]][round].keys(), index=[round])
+        st.dataframe(pd.concat((local_node, temp), axis=0), use_container_width=True)
+
+    if len(fed_rounds) > 1 :
+        x = [i+1 for i in range(len(fed_rounds))]
+        y = [results[mapping_captor_and_node[captor]][round]["RMSE"] for round in fed_rounds]
+
+        
+        y_threshold = results[mapping_captor_and_node[captor]]["local_only"]["RMSE"]
+
+        # Plot x and y arrays and x and y threshold values
+        plt.plot(x, y, label='Fed evolution of the RMSE')
+        plt.plot(x, [y_threshold] * len(x), label=f'Local after {config_json["num_epochs_local_no_federation"]} epoch(s)', linestyle='--', color='red')
+        plt.xticks(np.arange(1, len(x)+1, 1))
+
+
+        # Add labels and title
+        plt.xlabel('Number of Rounds')
+        plt.ylabel('RMSE Value')
+        plt.title('Evolution of the RMSE value round after round')
+
+        # Add legend
+        plt.legend()
+        
+        c1_evolution, c2_evolution, c3_evolution = st.columns((1,2,1))
+        with c2_evolution:
+            st.pyplot(plt)
