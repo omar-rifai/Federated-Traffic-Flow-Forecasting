@@ -116,17 +116,11 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     st.dataframe(pd.concat((local_node, federated_node ), axis=0), use_container_width=True)
     
     
-    from os import makedirs
-    import torch
     import importlib
-    import contextlib
 
     from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, plot_prediction
-    from src.utils_training import train_model, testmodel
-    from src.utils_fed import fed_training_plan
-    from src.metrics import calculate_metrics, metrics_table, Percentage_of_Superior_Predictions
+    from src.utils_training import testmodel
     import src.config
-    import sys
 
     import json 
     params = src.config.Params('experiments/exp2/config.json')
@@ -169,23 +163,27 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         # Create model object here
         best_model = model(1,32,1)
         # Test model on data here
-        y_true, y_pred = testmodel(best_model, _test_loader, path, meanstd_dict, sensor_order_list, maximum)
+        if 'datadict' not in st.session_state:
+            st.session_state['datadict'] = _test_loader
+        if 'datadict_norm' not in st.session_state:
+            st.session_state['datadict_norm'] = st.session_state['datadict'][int(node)]['test_data'] * meanstd_dict[config_json["nodes_to_filter"][int(node)]]['std'] + meanstd_dict[config_json["nodes_to_filter"][int(node)]]['mean']
+        
+        y_true, y_pred = testmodel(best_model, st.session_state['datadict'][node]['test'], path, meanstd_dict, sensor_order_list, maximum)
         return y_true, y_pred
 
 
     for node in range(len(config_json["nodes_to_filter"])):
-        y_true[node], y_pred[node] = wrap_testmodel(datadict[node]['test'], f'{config_json["save_model_path"]}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
-        y_true_fed[node], y_pred_fed[node] = wrap_testmodel(datadict[node]['test'], f'{config_json["save_model_path"]}bestmodel_node{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
+        y_true[node], y_pred[node] = wrap_testmodel(datadict, f'{config_json["save_model_path"]}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
+        y_true_fed[node], y_pred_fed[node] = wrap_testmodel(datadict, f'{config_json["save_model_path"]}bestmodel_node{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
 
     def plot_comparison(y_true, y_pred, y_pred_fed, node):
         from src.metrics import rmse
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
         
-        test_set = datadict[int(node)]['test_data'] * meanstd_dict[config_json["nodes_to_filter"][int(node)]]['std'] + meanstd_dict[config_json["nodes_to_filter"][int(node)]]['mean']
+        test_set = st.session_state['datadict_norm']
         y_true, y_pred, y_pred_fed = y_true[int(node)], y_pred[int(node)], y_pred_fed[int(node)] 
-
-        index= test_set.index
+        index = test_set.index
 
         def plot_slider(i):
             plt.figure(figsize=(20, 9))
