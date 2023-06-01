@@ -116,84 +116,37 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     st.dataframe(pd.concat((local_node, federated_node ), axis=0), use_container_width=True)
     
     
+    
     import importlib
-
-    from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, plot_prediction
-    from src.utils_training import testmodel
     import src.config
-
     import json 
-    params = src.config.Params('experiments/exp2/config.json')
+    params = src.config.Params(f'{path_results}/config.json')
     module_name = 'src.models'
     class_name = params.model
     module = importlib.import_module(module_name)
     model = getattr(module, class_name)
 
-    input_size = 1
-    hidden_size = 32
-    num_layers = 6
-    output_size = 1
-    
-    @st.cache_data
-    def load_PeMS():
-        df_PeMS, distance = load_PeMS04_flow_data()
-        df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, distance, params.init_node, params.n_neighbours,
-                                                        params.smooth, params.center_and_reduce,
-                                                        params.normalize, params.sort_by_mean)
-        return df_PeMS, adjmat, meanstd_dict
-    
-    @st.cache_data
-    def create_data_dict(df_peMS):
-        return local_dataset(
-            df=df_PeMS,
-            nodes=config_json["nodes_to_filter"],
-            window_size=config_json["window_size"],
-            stride=config_json["stride"],
-            prediction_horizon=config_json["prediction_horizon"],
-        )
-    
-    df_PeMS, adjmat, meanstd_dict = load_PeMS()
-    datadict = create_data_dict(df_PeMS)
-    
-
-    y_true, y_pred, y_true_fed, y_pred_fed = {},{},{},{}
-
-    @st.cache_data
-    def wrap_testmodel(_test_loader, path=None, meanstd_dict =None, sensor_order_list =[], maximum= None):
-        # Create model object here
-        best_model = model(1,32,1)
-        # Test model on data here
-        if 'datadict' not in st.session_state:
-            st.session_state['datadict'] = _test_loader
-        if 'datadict_norm' not in st.session_state:
-            st.session_state['datadict_norm'] = st.session_state['datadict'][int(node)]['test_data'] * meanstd_dict[config_json["nodes_to_filter"][int(node)]]['std'] + meanstd_dict[config_json["nodes_to_filter"][int(node)]]['mean']
-        
-        y_true, y_pred = testmodel(best_model, st.session_state['datadict'][node]['test'], path, meanstd_dict, sensor_order_list, maximum)
-        return y_true, y_pred
-
-
-    for node in range(len(config_json["nodes_to_filter"])):
-        y_true[node], y_pred[node] = wrap_testmodel(datadict, f'{config_json["save_model_path"]}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
-        y_true_fed[node], y_pred_fed[node] = wrap_testmodel(datadict, f'{config_json["save_model_path"]}bestmodel_node{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
 
     def plot_comparison(y_true, y_pred, y_pred_fed, node):
         from src.metrics import rmse
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
         
-        test_set = st.session_state['datadict_norm']
-        y_true, y_pred, y_pred_fed = y_true[int(node)], y_pred[int(node)], y_pred_fed[int(node)] 
-        index = test_set.index
+        test_set = np.load(f"{path_results}/test_data_{node}.npy")
+
+        index = np.load(f"{params.save_model_path}/index_{node}.npy")
+        index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
         def plot_slider(i):
             plt.figure(figsize=(20, 9))
             # Plot first subplot
             plt.subplot(2, 1, 1)
-            plt.axvspan(index[i], index[i+ params.window_size -1], alpha=0.1, color='gray')
-            plt.plot(index[i:i+params.window_size], test_set[i:i+params.window_size], label='Window')
-            plt.plot(index[i+params.window_size-1:i+params.window_size + params.prediction_horizon], test_set[i+params.window_size -1 :i+params.window_size + params.prediction_horizon], label='y_true')
-            plt.scatter(index[i+params.window_size:i+ params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='blue', label='Federated prediction')
-            plt.plot(index[i+params.window_size:i +params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='blue', linestyle='-', linewidth=1)
+            plt.axvspan(index[i], index[i + params.window_size - 1], alpha=0.1, color='gray')
+            plt.plot(index[i:i + params.window_size], test_set[i:i + params.window_size], label='Window')
+            plt.plot(index[i + params.window_size-1:i + params.window_size + params.prediction_horizon], test_set[i + params.window_size -1 :i + params.window_size + params.prediction_horizon], label='y_true', color="violet")
+            plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
+            plt.scatter(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', label='Federated prediction')
+            plt.plot(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', linestyle='-', linewidth=1)
             
             ax = plt.gca()
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
@@ -209,9 +162,10 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
             plt.subplot(2, 1, 2)
             plt.axvspan(index[i], index[i+params.window_size -1], alpha=0.1, color='gray')
             plt.plot(index[i:i+ params.window_size], test_set[i:i+params.window_size], label='Window')
-            plt.plot(index[i+params.window_size-1 :i+ params.window_size +params.prediction_horizon], test_set[i+params.window_size-1:i+params.window_size +params.prediction_horizon], label='y_true')
-            plt.scatter(index[i+params.window_size:i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='black', label='Local prediction')
-            plt.plot(index[i+ params.window_size :i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='black', linestyle='-', linewidth=1)
+            plt.plot(index[i+params.window_size-1 :i+ params.window_size +params.prediction_horizon], test_set[i+params.window_size-1:i+params.window_size +params.prediction_horizon], label='y_true', color="violet")
+            plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
+            plt.scatter(index[i+params.window_size:i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', label='Local prediction')
+            plt.plot(index[i+ params.window_size :i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', linestyle='-', linewidth=1)
             
             ax = plt.gca()
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
@@ -228,16 +182,12 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
             plt.subplots_adjust(hspace=0.5) 
             plt.show()
             st.pyplot(plt)
-        #slider = widgets.IntSlider(min=0, max=len(y_true)-params.window_size, value=0, description='Index')
-
-        # def update_slider_description(change):
-            
-        #     index_value = index[change.new + params.window_size].strftime('%H:%M')
-        #     slider.description = f'Index: {index_value}'
-
-        # slider.observe(update_slider_description, 'value')
-        slider = st.slider('Select time?', 0, 130, 25)
+        
+        slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
         plot_slider(i=slider)
-        # display(interactive_plot)
 
+
+    y_true = np.load(f"{path_results}/y_true_local_{mapping_captor_and_node[captor]}.npy")
+    y_pred = np.load(f"{path_results}/y_pred_local_{mapping_captor_and_node[captor]}.npy")
+    y_pred_fed = np.load(f"{path_results}/y_pred_fed_{mapping_captor_and_node[captor]}.npy")
     plot_comparison(y_true, y_pred, y_pred_fed, mapping_captor_and_node[captor])
