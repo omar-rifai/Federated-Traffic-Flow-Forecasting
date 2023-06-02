@@ -6,10 +6,11 @@ import json
 import streamlit as st
 st.set_page_config(layout="wide")
 import pandas as pd
-import importlib
 import numpy as np
-import src.config
+from src.config import Params
 import json
+
+from src.metrics import rmse
 from os import path
 
 @st.cache_data
@@ -62,11 +63,11 @@ def plot_comparison(y_pred, y_pred_fed, node):
         plt.subplot(2, 1, 1)
         plt.axvspan(index[i], index[i + params.window_size - 1], alpha=0.1, color='gray')
         plt.plot(index[i:i + params.window_size], test_set[i:i + params.window_size], label='Window')
-        plt.plot(index[i + params.window_size-1:i + params.window_size + params.prediction_horizon], test_set[i + params.window_size -1 :i + params.window_size + params.prediction_horizon], label='y_true', color="violet")
-        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
-        plt.scatter(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', label='Federated prediction')
+        plt.plot(index[i + params.window_size-1:i + params.window_size + params.prediction_horizon], test_set[i + params.window_size -1 :i + params.window_size + params.prediction_horizon], color="violet")
+        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], label="y_true", color="violet")
+        plt.scatter(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', label=f'Federated RMSE : {rmse(y_true[i, :].flatten(), y_pred_fed[i, :].flatten()):.2f}')
         plt.plot(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', linestyle='-', linewidth=1)
-        
+
         ax = plt.gca()
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
         ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
@@ -82,11 +83,10 @@ def plot_comparison(y_pred, y_pred_fed, node):
         plt.subplot(2, 1, 2)
         plt.axvspan(index[i], index[i+params.window_size -1], alpha=0.1, color='gray')
         plt.plot(index[i:i+ params.window_size], test_set[i:i+params.window_size], label='Window')
-        plt.plot(index[i+params.window_size-1 :i+ params.window_size +params.prediction_horizon], test_set[i+params.window_size-1:i+params.window_size +params.prediction_horizon], label='y_true', color="violet")
-        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
-        plt.scatter(index[i+params.window_size:i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', label='Local prediction')
+        plt.plot(index[i+params.window_size-1 :i+ params.window_size +params.prediction_horizon], test_set[i+params.window_size-1:i+params.window_size +params.prediction_horizon], color="violet")
+        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet", label="y_true")
+        plt.scatter(index[i+params.window_size:i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', label=f'Local RMSE : {rmse(y_true[i, :].flatten(), y_pred[i, :].flatten()):.2f}')
         plt.plot(index[i+ params.window_size :i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', linestyle='-', linewidth=1)
-        
         
         ax = plt.gca()
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
@@ -97,7 +97,6 @@ def plot_comparison(y_pred, y_pred_fed, node):
         plt.ylabel('Traffic Flow')
         plt.title("Local Prediction for the {}".format(index[i].strftime('%Y-%m-%d')), fontsize=18, fontweight='bold')
         plt.legend(fontsize='large')
-        # plt.text(index[i+84], max(y_pred[i,:]+50), f'RMSE: {rmse(y_true_fed[i, :].flatten(), y_pred[i, :].flatten()):.2f}', fontsize='large', fontweight='bold')
 
         plt.tight_layout()
         plt.subplots_adjust(hspace=0.5) 
@@ -106,7 +105,6 @@ def plot_comparison(y_pred, y_pred_fed, node):
     
     slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
     plot_slider(i=slider)
-
 
 
 key_config_json = \
@@ -125,11 +123,11 @@ user_selection = \
     "models": {}
 }
 
+experiments = "experiments"
 
 #######################################################################
 # Loading Data
 #######################################################################
-experiments = "experiments"
 if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     for file in files:
         with open(file) as f:
@@ -195,7 +193,7 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     st.dataframe(pd.concat((local_node, federated_node ), axis=0), use_container_width=True)
 
 
-    params = src.config.Params(f'{path_results}/config.json')
+    params = Params(f'{path_results}/config.json')
     if (path.exists(f'{params.save_model_path}y_true_local_{mapping_captor_and_node[captor]}.npy') and
         path.exists(f"{path_results}/y_pred_fed_{mapping_captor_and_node[captor]}.npy")):
         
