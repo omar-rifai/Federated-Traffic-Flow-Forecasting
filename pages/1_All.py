@@ -82,9 +82,13 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
     if(len(models_filtered[model]) > 1):
         st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
-
-    path_results = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
-
+        select_exp = st.selectbox("Choose", models_filtered[model])
+        select_exp = models_filtered[model].index(select_exp)
+        path_results = ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
+        
+    else:
+        path_results = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
+        
     with open(f"{path_results}/test.json") as f:
         results = json.load(f)
     
@@ -107,20 +111,22 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     
     df_federated_node = []
     for captor in mapping_captor_and_node.keys():
-        federated_node = results[mapping_captor_and_node[captor]]["Federated"]
-        df_federated_node.append(federated_node)
+        if "Federated" in results[mapping_captor_and_node[captor]].keys():
+            federated_node = results[mapping_captor_and_node[captor]]["Federated"]
+            df_federated_node.append(federated_node)
     
-    st.subheader("How much the Federated version is performant on average taking in account all the captors for the calculation of the statistics")
-    df_federated_node = pd.DataFrame(df_federated_node)
-    global_stats_fed_ver = df_federated_node.describe().T
-    global_stats_fed_ver.rename(columns={'count': 'Nb captors'}, inplace=True)
-    st.dataframe(global_stats_fed_ver, use_container_width=True)
-    
-    c1_boxplot_fed, c2_bobxplot_fed, c3_boxplot_fed = st.columns((1,2,1))
-    st.subheader(f'Box plot of RMSE values for captor {captor}')
-    fig, ax = plt.subplots()
-    bar_plot_results = df_federated_node
-    bar_plot_results.boxplot(column=["RMSE", "MAE"], ylabel="values", xlabel="Captor", ax=ax)
-    plt.yticks(np.arange(0, max(bar_plot_results["RMSE"].max(), bar_plot_results["MAE"].max()), 10))
-    with c2_bobxplot_fed:
-        st.pyplot(fig, use_container_width=True)
+    if df_federated_node != []:
+        st.subheader("How much the Federated version is performant on average taking in account all the captors for the calculation of the statistics")
+        df_federated_node = pd.DataFrame(df_federated_node)
+        global_stats_fed_ver = df_federated_node.describe().T
+        global_stats_fed_ver.rename(columns={'count': 'Nb captors'}, inplace=True)
+        st.dataframe(global_stats_fed_ver, use_container_width=True)
+        
+        c1_boxplot_fed, c2_bobxplot_fed, c3_boxplot_fed = st.columns((1,2,1))
+        st.subheader(f'Box plot of RMSE values for captor {captor}')
+        fig, ax = plt.subplots()
+        bar_plot_results = df_federated_node
+        bar_plot_results.boxplot(column=["RMSE", "MAE"], ylabel="values", xlabel="Captor", ax=ax)
+        plt.yticks(np.arange(0, max(bar_plot_results["RMSE"].max(), bar_plot_results["MAE"].max()), 10))
+        with c2_bobxplot_fed:
+            st.pyplot(fig, use_container_width=True)

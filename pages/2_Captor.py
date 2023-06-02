@@ -1,17 +1,18 @@
 ###############################################################################
 # Libraries
 ###############################################################################
-import copy
-import os
 import glob
-
 import json
 import streamlit as st
 st.set_page_config(layout="wide")
 import pandas as pd
-import matplotlib.pyplot as plt
+import importlib
 import numpy as np
+import src.config
+import json
+from os import path
 
+@st.cache_data
 def filtering_path_file(file_dict, filter_list):
     """
     Returns a new dictionary that contains only the files that are in the filter list.
@@ -38,6 +39,75 @@ def filtering_path_file(file_dict, filter_list):
                     filtered_file_dict[key] = [file]
     return filtered_file_dict
 
+@st.cache_data
+def load_numpy(path):
+    return np.load(path)
+
+
+def plot_comparison(y_pred, y_pred_fed, node):
+    from src.metrics import rmse
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    
+    test_set = load_numpy(f"{params.save_model_path}/test_data_{node}.npy")
+    index = load_numpy(f"{params.save_model_path}/index_{node}.npy")
+    index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
+    
+    @st.cache_data
+    def plot_slider(i):
+        plt.figure(figsize=(30, 20))
+        
+        # FEDERATED
+        # Plot first subplot
+        plt.subplot(2, 1, 1)
+        plt.axvspan(index[i], index[i + params.window_size - 1], alpha=0.1, color='gray')
+        plt.plot(index[i:i + params.window_size], test_set[i:i + params.window_size], label='Window')
+        plt.plot(index[i + params.window_size-1:i + params.window_size + params.prediction_horizon], test_set[i + params.window_size -1 :i + params.window_size + params.prediction_horizon], label='y_true', color="violet")
+        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
+        plt.scatter(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', label='Federated prediction')
+        plt.plot(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', linestyle='-', linewidth=1)
+        
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
+        ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        
+        plt.xlabel('Time')
+        plt.ylabel('Traffic Flow')
+        plt.title("Federated Prediction for the {}".format(index[i].strftime('%Y-%m-%d')), fontsize=18, fontweight='bold')
+        plt.legend(fontsize='large')
+
+        # LOCAL
+        # Plot second subplot
+        plt.subplot(2, 1, 2)
+        plt.axvspan(index[i], index[i+params.window_size -1], alpha=0.1, color='gray')
+        plt.plot(index[i:i+ params.window_size], test_set[i:i+params.window_size], label='Window')
+        plt.plot(index[i+params.window_size-1 :i+ params.window_size +params.prediction_horizon], test_set[i+params.window_size-1:i+params.window_size +params.prediction_horizon], label='y_true', color="violet")
+        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
+        plt.scatter(index[i+params.window_size:i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', label='Local prediction')
+        plt.plot(index[i+ params.window_size :i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', linestyle='-', linewidth=1)
+        
+        
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
+        ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        
+        plt.xlabel('Time')
+        plt.ylabel('Traffic Flow')
+        plt.title("Local Prediction for the {}".format(index[i].strftime('%Y-%m-%d')), fontsize=18, fontweight='bold')
+        plt.legend(fontsize='large')
+        # plt.text(index[i+84], max(y_pred[i,:]+50), f'RMSE: {rmse(y_true_fed[i, :].flatten(), y_pred[i, :].flatten()):.2f}', fontsize='large', fontweight='bold')
+
+        plt.tight_layout()
+        plt.subplots_adjust(hspace=0.5) 
+        plt.show()
+        st.pyplot(plt)
+    
+    slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
+    plot_slider(i=slider)
+
+
 
 key_config_json = \
 [
@@ -54,6 +124,7 @@ user_selection = \
     "predictions_horizon": {},
     "models": {}
 }
+
 
 #######################################################################
 # Loading Data
@@ -82,8 +153,12 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
 
     if(len(models_filtered[model]) > 1):
         st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
-
-    path_results = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
+        select_exp = st.selectbox("Choose", models_filtered[model])
+        select_exp = models_filtered[model].index(select_exp)
+        path_results = ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
+        
+    else:
+        path_results = ("\\".join(models_filtered[model][0].split("\\")[:-1]))
 
     with open(f"{path_results}/test.json") as f:
         results = json.load(f)
@@ -106,88 +181,26 @@ if files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
         mapping_captor_and_node[config_json["nodes_to_filter"][int(node)]] = node
         
     captor = st.selectbox('Choose the captor', mapping_captor_and_node.keys())
-
-    local_node = results[mapping_captor_and_node[captor]]["local_only"]
-    local_node = pd.DataFrame(local_node, columns=results[mapping_captor_and_node[captor]]["local_only"].keys(), index=["Captor alone"])
     
-    federated_node = results[mapping_captor_and_node[captor]]["Federated"]
-    federated_node = pd.DataFrame(federated_node, columns=results[mapping_captor_and_node[captor]]["Federated"].keys(), index=["Captor in Federation"])
-        
+    local_node = []
+    if "local_only" in results[mapping_captor_and_node[captor]].keys():
+        local_node = results[mapping_captor_and_node[captor]]["local_only"]
+        local_node = pd.DataFrame(local_node, columns=results[mapping_captor_and_node[captor]]["local_only"].keys(), index=["Captor alone"])
+
+    federated_node = []
+    if "Federated" in results[mapping_captor_and_node[captor]].keys():
+        federated_node = results[mapping_captor_and_node[captor]]["Federated"]
+        federated_node = pd.DataFrame(federated_node, columns=results[mapping_captor_and_node[captor]]["Federated"].keys(), index=["Captor in Federation"])
+
     st.dataframe(pd.concat((local_node, federated_node ), axis=0), use_container_width=True)
-    
-    
-    
-    import importlib
-    import src.config
-    import json 
+
+
     params = src.config.Params(f'{path_results}/config.json')
-    module_name = 'src.models'
-    class_name = params.model
-    module = importlib.import_module(module_name)
-    model = getattr(module, class_name)
-
-
-    def plot_comparison(y_true, y_pred, y_pred_fed, node):
-        from src.metrics import rmse
-        import matplotlib.pyplot as plt
-        import matplotlib.dates as mdates
+    if (path.exists(f'{params.save_model_path}y_true_local_{mapping_captor_and_node[captor]}.npy') and
+        path.exists(f"{path_results}/y_pred_fed_{mapping_captor_and_node[captor]}.npy")):
         
-        test_set = np.load(f"{path_results}/test_data_{node}.npy")
-
-        index = np.load(f"{params.save_model_path}/index_{node}.npy")
-        index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
-
-        def plot_slider(i):
-            plt.figure(figsize=(20, 9))
-            # Plot first subplot
-            plt.subplot(2, 1, 1)
-            plt.axvspan(index[i], index[i + params.window_size - 1], alpha=0.1, color='gray')
-            plt.plot(index[i:i + params.window_size], test_set[i:i + params.window_size], label='Window')
-            plt.plot(index[i + params.window_size-1:i + params.window_size + params.prediction_horizon], test_set[i + params.window_size -1 :i + params.window_size + params.prediction_horizon], label='y_true', color="violet")
-            plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
-            plt.scatter(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', label='Federated prediction')
-            plt.plot(index[i + params.window_size: i + params.window_size + params.prediction_horizon], y_pred_fed[i, :], color='green', linestyle='-', linewidth=1)
-            
-            ax = plt.gca()
-            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
-            ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            plt.xlabel('Time')
-            plt.ylabel('Traffic Flow')
-            plt.title("Federated Prediction for the {}".format(index[i].strftime('%Y-%m-%d')), fontsize=18, fontweight='bold')
-            plt.legend(fontsize='large')
-
-            
-            # Plot second subplot
-            plt.subplot(2, 1, 2)
-            plt.axvspan(index[i], index[i+params.window_size -1], alpha=0.1, color='gray')
-            plt.plot(index[i:i+ params.window_size], test_set[i:i+params.window_size], label='Window')
-            plt.plot(index[i+params.window_size-1 :i+ params.window_size +params.prediction_horizon], test_set[i+params.window_size-1:i+params.window_size +params.prediction_horizon], label='y_true', color="violet")
-            plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], color="violet")
-            plt.scatter(index[i+params.window_size:i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', label='Local prediction')
-            plt.plot(index[i+ params.window_size :i+ params.window_size +params.prediction_horizon], y_pred[i, :], color='red', linestyle='-', linewidth=1)
-            
-            ax = plt.gca()
-            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
-            ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            
-            plt.xlabel('Time')
-            plt.ylabel('Traffic Flow')
-            plt.title("Local Prediction for the {}".format(index[i].strftime('%Y-%m-%d')), fontsize=18, fontweight='bold')
-            plt.legend(fontsize='large')
-            # plt.text(index[i+84], max(y_pred[i,:]+50), f'RMSE: {rmse(y_true_fed[i, :].flatten(), y_pred[i, :].flatten()):.2f}', fontsize='large', fontweight='bold')
-
-            plt.tight_layout()
-            plt.subplots_adjust(hspace=0.5) 
-            plt.show()
-            st.pyplot(plt)
+        y_true = load_numpy(f"{path_results}/y_true_local_{mapping_captor_and_node[captor]}.npy")
+        y_pred = load_numpy(f"{path_results}/y_pred_local_{mapping_captor_and_node[captor]}.npy")
+        y_pred_fed = load_numpy(f"{path_results}/y_pred_fed_{mapping_captor_and_node[captor]}.npy")
         
-        slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
-        plot_slider(i=slider)
-
-
-    y_true = np.load(f"{path_results}/y_true_local_{mapping_captor_and_node[captor]}.npy")
-    y_pred = np.load(f"{path_results}/y_pred_local_{mapping_captor_and_node[captor]}.npy")
-    y_pred_fed = np.load(f"{path_results}/y_pred_fed_{mapping_captor_and_node[captor]}.npy")
-    plot_comparison(y_true, y_pred, y_pred_fed, mapping_captor_and_node[captor])
+        plot_comparison(y_pred, y_pred_fed, mapping_captor_and_node[captor])
