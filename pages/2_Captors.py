@@ -57,17 +57,23 @@ def plot_slider(experiment_path):
     
     index = load_numpy(f"{params.save_model_path}/index_{mapping_captor_with_nodes[captor]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
-    
     slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
 
-    def plot_subplot(subplot_num, color, label, title, _y_pred, i):
+    def plot_subplot(subplot_num, color, label, title, y_pred, i):
         df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
         df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
         df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
-        df[f'{label} RMSE : {rmse(y_true[i, :].flatten(), _y_pred[i, :].flatten()):.2f}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), _y_pred[i, :]])
-        fig = px.line(df, x='Time', y=['Window', 'y_true', f'{label} RMSE : {rmse(y_true[i, :].flatten(), _y_pred[i, :].flatten()):.2f}'], color_discrete_sequence=['black', 'violet', color])
+        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
+        fig = px.line(df, x='Time', y=["Window", "y_true", f"y_pred_{label}"], color_discrete_sequence=['black', 'blue', color])
+        newnames = {'Window': 'Window', 'y_true':'y_true', f"y_pred_{label}": f'{label} RMSE : {rmse(y_true[i, :].flatten(), y_pred[i, :].flatten()):.2f}'}
+        fig.for_each_trace(lambda t: t.update(name = newnames[t.name],
+            legendgroup = newnames[t.name],
+            hovertemplate = t.hovertemplate.replace(t.name, newnames[t.name])
+            )
+        )
         fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=18), legend_font=dict(size=16))
+        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=18), legend=dict(title='Legends', font=dict(size=16)))
+        fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.1, line_width=0)
         return fig
 
     # FEDERATED
@@ -76,8 +82,8 @@ def plot_slider(experiment_path):
     local_fig = plot_subplot(2, 'red', 'Local', "Local Prediction", y_pred, slider)
     
     with st.spinner('Plotting...'):
-        st.plotly_chart(fed_fig)
-        st.plotly_chart(local_fig)
+        st.plotly_chart(fed_fig, use_container_width=True)
+        st.plotly_chart(local_fig, use_container_width=True)
 
 
 
