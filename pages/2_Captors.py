@@ -9,8 +9,6 @@ import streamlit as st
 st.set_page_config(layout="wide")
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 
 from src.metrics import rmse
 from src.config import Params
@@ -48,6 +46,8 @@ def load_numpy(path):
     return np.load(path)
 
 
+import plotly.express as px
+
 def plot_slider(experiment_path):
     test_set = load_numpy(f"{params.save_model_path}/test_data_{mapping_captor_with_nodes[captor]}.npy")
 
@@ -61,35 +61,24 @@ def plot_slider(experiment_path):
     slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
 
     def plot_subplot(subplot_num, color, label, title, _y_pred, i):
-        plt.subplot(2, 1, subplot_num)
-        plt.axvspan(index[i], index[i + params.window_size - 1], alpha=0.1, color='gray')
-        plt.plot(index[i:i + params.window_size], test_set[i:i + params.window_size], label='Window')
-        plt.plot(index[i + params.window_size-1:i + params.window_size + params.prediction_horizon], test_set[i + params.window_size -1 :i + params.window_size + params.prediction_horizon], color="violet")
-        plt.scatter(index[i + params.window_size :i + params.window_size + params.prediction_horizon], test_set[i + params.window_size :i + params.window_size + params.prediction_horizon], label="y_true", color="violet")
-        plt.scatter(index[i + params.window_size: i + params.window_size + params.prediction_horizon], _y_pred[i, :], color=color, label=f'{label} RMSE : {rmse(y_true[i, :].flatten(), _y_pred[i, :].flatten()):.2f}')
-        plt.plot(index[i + params.window_size: i + params.window_size + params.prediction_horizon], _y_pred[i, :], color=color, linestyle='-', linewidth=1)
+        df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
+        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
+        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
+        df[f'{label} RMSE : {rmse(y_true[i, :].flatten(), _y_pred[i, :].flatten()):.2f}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), _y_pred[i, :]])
+        fig = px.line(df, x='Time', y=['Window', 'y_true', f'{label} RMSE : {rmse(y_true[i, :].flatten(), _y_pred[i, :].flatten()):.2f}'], color_discrete_sequence=['black', 'violet', color])
+        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
+        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=18), legend_font=dict(size=16))
+        return fig
 
-        ax = plt.gca()
-        ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
-        ax.xaxis.set_minor_locator(mdates.MinuteLocator(interval=5))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-
-        plt.xlabel('Time')
-        plt.ylabel('Traffic Flow')
-        plt.title(f"{title} ({index[slider].strftime('%Y-%m-%d')})", fontsize=18, fontweight='bold')
-        plt.legend(fontsize='large')
-
-
-    plt.figure(figsize=(30, 20))
     # FEDERATED
-    plot_subplot(1, 'green', 'Federated', "Federated Prediction", y_pred_fed, slider)
+    fed_fig = plot_subplot(1, 'green', 'Federated', "Federated Prediction", y_pred_fed, slider)
     # LOCAL
-    plot_subplot(2, 'red', 'Local', "Local Prediction", y_pred, slider)
+    local_fig = plot_subplot(2, 'red', 'Local', "Local Prediction", y_pred, slider)
     
-    plt.tight_layout()
-    plt.subplots_adjust(hspace=0.5)
     with st.spinner('Plotting...'):
-        st.pyplot(plt, clear_figure=True)
+        st.plotly_chart(fed_fig)
+        st.plotly_chart(local_fig)
+
 
 
 @st.cache_data
