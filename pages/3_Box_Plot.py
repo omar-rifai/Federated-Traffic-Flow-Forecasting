@@ -59,37 +59,31 @@ def plot_slider(experiment_path):
     index = load_numpy(f"{params.save_model_path}/index_{mapping_captor_with_nodes[captor]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
     
-    slider = st.slider('Select time?', 0, len(index)-params.prediction_horizon-params.window_size, params.prediction_horizon)
-
-    def plot_prediction_graph(color, label, title, y_pred, i):
-        df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
-        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
-        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
-        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
-        fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
-        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='markers+lines', marker=dict(color='blue'), name='y_true')
-        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse(y_true[i, :].flatten(), y_pred[i, :].flatten()):.2f}')
-        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error')
-        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
-        fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
-        return fig
-
-    def plot_box_plot(color, label, title, y_pred, i):
-        df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
-        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
-        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
-        df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
-        fig = px.box(df, y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), color_discrete_sequence=['black'])
-        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"{title} ({index[slider].strftime('%Y-%m-%d')})", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
+    def plot_box_plot(color, label, title, y_pred, y_true):
+        fig = px.box(y=(np.abs(y_pred.flatten() - y_true.flatten())), color_discrete_sequence=['grey'], title=title, points="suspectedoutliers")
+        fig.update_layout(
+        title={
+            'text': f"{title} Absolute error",
+            'y':0.95,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'},
+        xaxis_title=f"captor {captor}",
+        yaxis_title="Trafic flow (absolute error)",
+        font=dict(
+            size=28,
+            color="#7f7f7f"
+        ),
+        width=500,
+        height=800
+        )
         return fig
 
     # FEDERATED
-    fed_fig = plot_prediction_graph('green', 'Federated', "Federated Prediction", y_pred_fed, slider)
+    fed_fig = plot_box_plot('green', 'Federated Prediction', "Federated Prediction", y_pred_fed, y_true)
     
     # LOCAL
-    local_fig = plot_prediction_graph('red', 'Local', "Local Prediction", y_pred, slider)
+    local_fig = plot_box_plot('red', 'Local Prediction', "Local Prediction", y_pred, y_true)
     
     with st.spinner('Plotting...'):
         st.plotly_chart(fed_fig, use_container_width=True)
