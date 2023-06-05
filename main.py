@@ -1,5 +1,6 @@
 
 from os import makedirs
+from shutil import copy
 import torch
 import importlib
 import contextlib
@@ -26,9 +27,8 @@ config_file_path = sys.argv[1]
 
 params = src.config.Params(config_file_path)
 
-path_folder = params.save_model_path.split("/")[:-1]
-new_path = '/'.join(path_folder)
-makedirs(new_path, exist_ok=True)
+makedirs(params.save_model_path, exist_ok=True)
+copy(config_file_path.split("\\")[-1], params.save_model_path + "config.json")
 
 with open(params.save_model_path + 'train.txt', 'w') as f:
     with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):

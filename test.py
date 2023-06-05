@@ -9,6 +9,7 @@ from src.utils_fed import fed_training_plan
 from src.metrics import calculate_metrics, metrics_table, Percentage_of_Superior_Predictions
 import src.config
 import sys
+import numpy
 
 import json 
 
@@ -24,9 +25,7 @@ config_file_path = sys.argv[1]
 
 params = src.config.Params(config_file_path)
 
-path_folder = params.save_model_path.split("/")[:-1]
-new_path = '/'.join(path_folder)
-makedirs(new_path, exist_ok=True)
+makedirs(params.save_model_path, exist_ok=True)
 
 with open(params.save_model_path +'test.txt', 'w') as f:
     with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):
@@ -54,15 +53,25 @@ with open(params.save_model_path +'test.txt', 'w') as f:
                                 prediction_horizon=params.prediction_horizon)
         print(datadict.keys())
         metrics_dict ={}
+
         for node in range(len(params.nodes_to_filter)):
             metrics_dict[node]={}
+            datadict[node]['test_data'] = datadict[node]['test_data'] * meanstd_dict[params.nodes_to_filter[node]]['std'] + meanstd_dict[params.nodes_to_filter[node]]['mean']
+            
+            numpy.save(f"{params.save_model_path}test_data_{node}", datadict[node]['test_data'])
+            numpy.save(f"{params.save_model_path}index_{node}", datadict[node]['test_data'].index)
+
             y_true, y_pred = testmodel(model(1,32,1), datadict[node]['test'], f'{params.save_model_path}local{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])  
             local_metrics = calculate_metrics(y_true, y_pred)
             metrics_dict[node]['local_only'] = local_metrics
+            numpy.save(f'{params.save_model_path}y_true_local_{node}', y_true)
+            numpy.save(f'{params.save_model_path}y_pred_local_{node}', y_pred)
 
             y_true_fed, y_pred_fed = testmodel(model(1,32,1), datadict[node]['test'], f'{params.save_model_path}bestmodel_node{node}.pth', meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
             fed_metrics = calculate_metrics(y_true_fed, y_pred_fed)
             metrics_dict[node][f'Federated'] = fed_metrics
+            numpy.save(f'{params.save_model_path}y_true_fed_{node}', y_true_fed)
+            numpy.save(f'{params.save_model_path}y_pred_fed_{node}', y_pred_fed)
             print(f'Federated vs local only for node {node} :')
             fed_metrics['Superior Pred %'], local_metrics['Superior Pred % '] = Percentage_of_Superior_Predictions(y_true, y_pred, y_true_fed, y_pred_fed)
             print(metrics_table({'Local' :local_metrics, f'Federated' : fed_metrics }))
