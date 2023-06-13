@@ -102,7 +102,7 @@ def selection_of_experiment(possible_choice):
     nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
     nb_captor = st.selectbox('Choose the number of sensors', nb_captor_filtered.keys())
 
-    windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
+    windows_size_filtered = filtering_path_file(possible_choice["window_size"], nb_captor_filtered[nb_captor])
     window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys(), format_func=format_windows_prediction_size)
 
     horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
