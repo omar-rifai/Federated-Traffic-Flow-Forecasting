@@ -11,13 +11,12 @@
     "window_size": 84,
     "prediction_horizon": 12,
     "stride" : 1,
-    "communication_rounds" : 200,
-    "num_epochs_local_no_federation": 200,
+    "communication_rounds" : 100,
+    "num_epochs_local_no_federation": 100,
     "num_epochs_local_federation": 10,
+    "epoch_local_retrain_after_federation": 100,
     "learning_rate": 0.001,
-    "plot" : false,
-    "time_point_to_plot":100,
-    "model": "GRUModel",
-    "save_model_path": "./model/experiments/"
+    "model": "LSTMModel",
+    "save_model_path": "/LSTMModel/"
 }
 
