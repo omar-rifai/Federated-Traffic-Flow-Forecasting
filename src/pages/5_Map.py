@@ -2,11 +2,12 @@ from os import path
 
 
 import streamlit as st
-from streamlit_folium import folium_static, st_folium
+from streamlit_folium import folium_static
 import glob
 import json
 import pandas as pd
 import folium
+from screeninfo import get_monitors
 
 
 from metrics import maape
@@ -17,6 +18,15 @@ from utils_streamlit_app import selection_of_experiment
 
 
 st.set_page_config(layout="wide")
+
+height = []
+width = []
+for m in get_monitors():
+    height.append(m.height)
+    width.append(m.width)
+
+height = min(height)
+width = min(width)
 
 SEATTLE_ROADS = [
     [47.679470, -122.315626],
@@ -66,17 +76,17 @@ def plot_map(experiment_path):
         y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
         plot_map_slider(y_true, y_pred, y_pred_fed, slider, map_sensor_loc[sensor])
 
-    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(20, 20))
-    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(20, 20))
+    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(30, 30))
+    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))
 
     # Create a table
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns((0.5, 0.5), gap="small")
     with col1:
         col1.header('Federated model results')
-        st_folium(seattle_map_global, height=500, width=500)
+        folium_static(seattle_map_global, width=width / 2 - 300)
     with col2:
         col2.header('Local models results')
-        st_folium(seattle_map_local, height=500, width=500)
+        folium_static(seattle_map_local, width=width / 2 - 300)
 
 #######################################################################
 # Main
