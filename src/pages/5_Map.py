@@ -8,6 +8,7 @@ import json
 import pandas as pd
 import folium
 from screeninfo import get_monitors
+from annotated_text import annotated_text
 
 
 from metrics import maape
@@ -78,6 +79,12 @@ def plot_map(experiment_path):
 
     seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(30, 30))
     seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))
+
+    annotated_text(
+        "A higher percent indicates a better prediction. The ",
+        ("green", "", "#75ff5b"), " circle",
+        " is better than the ",
+        ("red", "", "#fe7597"), " one.")
 
     # Create a table
     col1, col2 = st.columns((0.5, 0.5), gap="small")
