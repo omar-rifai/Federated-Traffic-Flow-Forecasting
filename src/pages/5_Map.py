@@ -2,7 +2,7 @@ from os import path
 
 
 import streamlit as st
-from streamlit_folium import folium_static
+from streamlit_folium import folium_static, st_folium
 import glob
 import json
 import pandas as pd
@@ -49,7 +49,8 @@ def plot_map(experiment_path):
     index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
-    slider = st.slider('Select time?', 0, len(index) - params.prediction_horizon - params.window_size, params.prediction_horizon, key="test")
+    slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0)
+    st.header(f"| {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')}")
 
     def plot_map_slider(y_true, y_pred, y_pred_fed, i, coords):
         maape_computed_local = 1 - (maape(y_true[i, :].flatten(), y_pred[i, :].flatten())) / 100.0
@@ -65,17 +66,17 @@ def plot_map(experiment_path):
         y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
         plot_map_slider(y_true, y_pred, y_pred_fed, slider, map_sensor_loc[sensor])
 
-    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(10, 10))
-    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(10, 10))
+    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(20, 20))
+    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(20, 20))
 
     # Create a table
-    col1, col2 = st.columns(2, gap="small")
+    col1, col2 = st.columns(2)
     with col1:
         col1.header('Federated model results')
-        folium_static(seattle_map_global, width=650)
+        st_folium(seattle_map_global, height=500, width=500)
     with col2:
         col2.header('Local models results')
-        folium_static(seattle_map_local, width=650)
+        st_folium(seattle_map_local, height=500, width=500)
 
 #######################################################################
 # Main
