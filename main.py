@@ -77,19 +77,32 @@ with open(f"{PATH_EXPERIMENTS}train.txt", 'w') as f:
                                                                         num_epochs=params.num_epochs_local_no_federation, 
                                                                         remove = False, learning_rate=params.learning_rate)
 
-                y_true, y_pred = testmodel(local_model,data_dict['test'], meanstd_dict = meanstd_dict, sensor_order_list=[params.nodes_to_filter[node]])
-                if params.plot : 
-                    plot_prediction(y_true, y_pred, data_dict['test_data'],meanstd_dict[params.nodes_to_filter[node]], window_size =params.window_size , time_point_t=params.time_point_to_plot, node=0, plot_fig_name = f'Local_{params.num_epochs_local_no_federation}epochs_node_{node}' )
-
         # # Federated Learning Experiment
         if params.num_epochs_local_federation:
             main_model = model(input_size, hidden_size, output_size, num_layers)
 
-            model = fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation, model_path = f'{PATH_EXPERIMENTS}',)
+            fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation, model_path = f'{PATH_EXPERIMENTS}',)
             
 
+        if params.epoch_local_retrain_after_federation :
+            # Local Training 
+            train_losses = {}
+            val_losses = {}
 
+            for node in range(params.number_of_nodes):
+                print(f'Retraining the federated model locally on node {node} for {params.epoch_local_retrain_after_federation} epochs')
+                new_local_model = model(input_size, hidden_size, output_size, num_layers)
+                model_path= f'{PATH_EXPERIMENTS}bestmodel_node{node}.pth'
+                local_model.load_state_dict(torch.load(model_path))
+                torch.save(local_model.state_dict(), f'{PATH_EXPERIMENTS}oldmodel_node{node}.pth')
 
+                data_dict = datadict[node]
+                local_model, train_losses[node], val_losses[node] = train_model(new_local_model, data_dict['train'], data_dict['val'], 
+                                                                        model_path = f'{PATH_EXPERIMENTS}bestmodel_node{node}.pth',
+                                                                        num_epochs=params.num_epochs_local_no_federation, 
+                                                                        remove = False, learning_rate=params.learning_rate)
+                
+                
 
 
 
