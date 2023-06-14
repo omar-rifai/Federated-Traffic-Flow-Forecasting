@@ -17,19 +17,19 @@ class Params():
             self.center_and_reduce = config['center_and_reduce']
             self.normalize = config['normalize']
             self.sort_by_mean = config['sort_by_mean']
-            self.nodes_to_filter = config['nodes_to_filter']  #[118,168,261]
-            self.number_of_nodes =  config['number_of_nodes']  #[118,168,261]
+            self.nodes_to_filter = config['nodes_to_filter']  
+            self.number_of_nodes =  config['number_of_nodes'] 
             self.window_size = config['window_size']
             self.prediction_horizon = config['prediction_horizon']
             self.stride = config['stride']
             self.communication_rounds = config['communication_rounds']
             self.num_epochs_local_no_federation = config['num_epochs_local_no_federation']
             self.num_epochs_local_federation = config['num_epochs_local_federation']
+            self.epoch_local_retrain_after_federation = config["epoch_local_retrain_after_federation"]
             self.learning_rate = config['learning_rate']
-            self.plot = config['plot']
-            self.time_point_to_plot = config['time_point_to_plot']
             self.model = config["model"]
             self.save_model_path = config["save_model_path"]
+            
 
 
 
