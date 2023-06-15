@@ -4,7 +4,6 @@
 from os import path
 
 
-import glob
 import json
 import streamlit as st
 import pandas as pd
@@ -15,7 +14,7 @@ from annotated_text import annotated_text
 
 from metrics import rmse
 from config import Params
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params, selection_of_experiment
+from utils_streamlit_app import load_numpy, selection_of_experiment
 from utils_streamlit_app import get_color_fed_vs_local
 
 st.set_page_config(layout="wide")
@@ -77,21 +76,8 @@ def plot_prediction_graph(experiment_path):
 #######################################################################
 st.header("Predictions Graph")
 
-experiments = "./experiments/"  # PATH where your experiments are saved
-if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
-
-    params_config_use_for_select = \
-        [
-            "time_serie_percentage_length",
-            "number_of_nodes",
-            "window_size",
-            "prediction_horizon",
-            "model"
-        ]
-    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
-
-    path_experiment_selected = selection_of_experiment(user_selection)
-
+path_experiment_selected = selection_of_experiment()
+if (path_experiment_selected is not None):
     with open(f"{path_experiment_selected}/test.json") as f:
         results = json.load(f)
     with open(f"{path_experiment_selected}/config.json") as f:

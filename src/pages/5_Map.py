@@ -3,7 +3,6 @@ from os import path
 
 import streamlit as st
 from streamlit_folium import folium_static
-import glob
 import json
 import pandas as pd
 import folium
@@ -14,7 +13,7 @@ from annotated_text import annotated_text
 from metrics import maape
 from config import Params
 from utils_streamlit_app import create_circle_precision_predict, get_color_fed_vs_local
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params
+from utils_streamlit_app import load_numpy
 from utils_streamlit_app import selection_of_experiment
 
 
@@ -102,20 +101,8 @@ def plot_map(experiment_path):
 
 st.header("Predictions Graph")
 
-experiments = "./experiments/"  # PATH where your experiments are saved
-if path_files := glob.glob(f"{experiments}**/config.json", recursive=True):
-
-    params_config_use_for_select = \
-        [
-            "time_serie_percentage_length",
-            "number_of_nodes",
-            "window_size",
-            "prediction_horizon",
-            "model"
-        ]
-    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
-
-    path_experiment_selected = selection_of_experiment(user_selection)
+path_experiment_selected = selection_of_experiment()
+if (path_experiment_selected is not None):
 
     with open(f"{path_experiment_selected}/test.json") as f:
         results = json.load(f)
