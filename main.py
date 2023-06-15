@@ -61,7 +61,8 @@ with open(f"{PATH_EXPERIMENTS}train.txt", 'w') as f:
                                 nodes = params.nodes_to_filter,
                                 window_size=params.window_size,
                                 stride=params.stride,
-                                prediction_horizon=params.prediction_horizon)
+                                prediction_horizon=params.prediction_horizon,
+                                batch_size=params.batch_size)
         print(datadict.keys())
         if params.num_epochs_local_no_federation:
             # Local Training 
