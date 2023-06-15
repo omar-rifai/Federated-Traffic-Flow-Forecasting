@@ -9,10 +9,10 @@ import json
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
+import plotly.graph_objects as go
 
 
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params, filtering_path_file
+from utils_streamlit_app import load_numpy, map_path_experiments_to_params, filtering_path_file, get_color_fed_vs_local
 from config import Params
 
 st.set_page_config(layout="wide")
@@ -29,7 +29,9 @@ def plot_slider(experiment_path):
     ae_model_2 = compute_absolute_error(experiment_path[1])
 
     def plot_box(title, ae, max_y_value, color):
-        fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="suspectedoutliers")
+        fig = go.Figure()
+        box = go.Box(y=ae, marker_color=color, boxmean='sd', name=title, boxpoints="suspectedoutliers")
+        fig.add_trace(box)
         fig.update_layout(
             title={
                 'text': f"{title}",
@@ -37,22 +39,27 @@ def plot_slider(experiment_path):
                 'x': 0.5,
                 'xanchor': 'center',
                 'yanchor': 'top'},
+            xaxis_title=f"sensor_select {sensor_select}",
             yaxis_title="Trafic flow (absolute error)",
             yaxis=dict(range=[0, max_y_value]),
             font=dict(
                 size=28,
-                color="#7f7f7f"
-            ), height=900, width=250
+                color="#FF7f7f"
+            ),
+            height=900, width=350
         )
+        fig.update_traces(jitter=0)
         return fig
 
     max_y_value = max(max(ae_model_1), max(ae_model_2))
 
+    model_1_color, model_2_color = get_color_fed_vs_local(np.mean(ae_model_1), np.mean(ae_model_2), superior=False)
+
     title_model_1 = paths_experiment_selected[0].split("\\")[1]
-    fig_model_1 = plot_box(f"{title_model_1}", ae_model_1, max_y_value, "green")
+    fig_model_1 = plot_box(f"{title_model_1}", ae_model_1, max_y_value, model_1_color)
 
     title_model_2 = paths_experiment_selected[1].split("\\")[1]
-    fig_model_2 = plot_box(f"{title_model_2}", ae_model_2, max_y_value, "red")
+    fig_model_2 = plot_box(f"{title_model_2}", ae_model_2, max_y_value, model_2_color)
 
     with st.spinner('Plotting...'):
         st.subheader(f"Comparison between two models on sensor {sensor_select} on the federated version (Aboslute Error)")

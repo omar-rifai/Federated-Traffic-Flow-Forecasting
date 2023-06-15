@@ -4,15 +4,15 @@
 from os import path
 
 
-import glob
 import json
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
+import plotly.graph_objects as go
 
 
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params, selection_of_experiment
+from metrics import rmse
+from utils_streamlit_app import get_color_fed_vs_local, load_numpy, selection_of_experiment
 from config import Params
 
 st.set_page_config(layout="wide")
@@ -24,7 +24,9 @@ def plot_slider(experiment_path):
     y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor_select]}.npy")
 
     def plot_box(title, ae, max_y_value, color):
-        fig = px.box(y=ae, color_discrete_sequence=[color], title=title, points="outliers")
+        fig = go.Figure()
+        box = go.Box(y=ae, marker_color=color, boxmean='sd', name=title, boxpoints="suspectedoutliers")
+        fig.add_trace(box)
         fig.update_layout(
             title={
                 'text': f"{title}",
@@ -37,22 +39,27 @@ def plot_slider(experiment_path):
             yaxis=dict(range=[0, max_y_value]),
             font=dict(
                 size=28,
-                color="#7f7f7f"
-            ), height=900, width=250
+                color="#FF7f7f"
+            ),
+            height=900, width=350
         )
+        fig.update_traces(jitter=0)
         return fig
 
     ae_fed = (np.abs(y_pred_fed.flatten() - y_true.flatten()))
     ae_local = (np.abs(y_pred.flatten() - y_true.flatten()))
-
     max_y_value = max(max(ae_fed), max(ae_local))
 
+    rmse_local = rmse(y_true.flatten(), y_pred.flatten())
+    rmse_fed = rmse(y_true.flatten(), y_pred_fed.flatten())
+
+    color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
+
     # FEDERATED
-    fed_fig = plot_box("Federated Prediction", ae_fed, max_y_value, 'green')
+    fed_fig = plot_box("Federated Prediction", ae_fed, max_y_value, color_fed)
 
     # LOCAL
-    local_fig = plot_box("Alone Prediction", ae_local, max_y_value, 'red')
-
+    local_fig = plot_box("Alone Prediction", ae_local, max_y_value, color_local)
     with st.spinner('Plotting...'):
         st.subheader(f"Comparison between Federation and local version on sensor {sensor_select} (Absolute Error)")
         _, c2_fed_fig, c3_local_fig, _ = st.columns((1, 1, 1, 1))
@@ -69,21 +76,8 @@ def plot_slider(experiment_path):
 
 st.header("Box Plot")
 
-experiments = "./experiments/"  # PATH where your experiments are saved
-if path_files := glob.glob(f"{experiments}/**/config.json", recursive=True):
-
-    params_config_use_for_select = \
-        [
-            "time_serie_percentage_length",
-            "number_of_nodes",
-            "window_size",
-            "prediction_horizon",
-            "model"
-        ]
-
-    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
-
-    path_experiment_selected = selection_of_experiment(user_selection)
+path_experiment_selected = selection_of_experiment()
+if (path_experiment_selected is not None):
 
     with open(f"{path_experiment_selected}/test.json") as f:
         results = json.load(f)

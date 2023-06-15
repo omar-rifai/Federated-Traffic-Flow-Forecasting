@@ -5,9 +5,9 @@ import streamlit as st
 st.set_page_config(layout="wide")
 c1_logo, _, _, c4_logo = st.columns((1,1,1,1))
 with c1_logo:
-    st.image("Bloc_Marque_ronds.jpg", width=200)
+    st.image("data/Bloc_Marque_ronds.jpg", width=200)
 with c4_logo:
-    st.image("cropped-vilagil.png", width=200)
+    st.image("data/cropped-vilagil.png", width=200)
 st.title("Welcome to the demonstrator")
 st.header("Projet-Vilagil")
 st.markdown(
@@ -46,13 +46,13 @@ A model training is composed of several "rounds" (the number of times the initia
 At the beginning, the model is sent to the selected clients with the initial parameters (the weights of the neural network) which are set either by the server according to a strategy to be defined, or by a randomly chosen client.
 Each client then performs a local calculation based on the global state of the shared model and its local dataset. The gradients are calculated and sent to the server in order to perform an aggregation and update it as the new global state and the process repeats for all rounds.
 """)
-st.image("Fed1.png")
+st.image("data/Fed1.png")
 st.markdown("""
 *FIG 1 : An illustration of Federated Learning Paradigm*
 
 Communications between the server and the various clients must be secure [7], efficient, scalable and fault-tolerant, using the SSL (Secure Sockets Layer) protocol for encrypted exchanges between machines. Thus, the risks of eavesdropping or interception are reduced and the confidentiality and protection of user data is guaranteed.
 """)
-st.image("Fed2.png")
+st.image("data/Fed2.png")
 
 st.markdown("""
 *FIG 2 : A Federated Learning Architecture*
