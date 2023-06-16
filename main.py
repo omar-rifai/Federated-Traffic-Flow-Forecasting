@@ -4,6 +4,7 @@ from shutil import copy
 import torch
 import importlib
 import contextlib
+import json 
 
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, plot_prediction
 from src.utils_training import train_model, testmodel
@@ -56,6 +57,14 @@ with open(f"{PATH_EXPERIMENTS}train.txt", 'w') as f:
         df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, distance, params.init_node, params.n_neighbours,
                                                             params.smooth, params.center_and_reduce,
                                                             params.normalize, params.sort_by_mean)
+        if params.nodes_to_filter ==[]:
+            params.nodes_to_filter = list(df_PeMS.columns[:params.number_of_nodes])
+            with open(f"{PATH_EXPERIMENTS}config.json", 'r') as file:
+                data = json.load(file)
+                data["nodes_to_filter"] = params.nodes_to_filter
+                with open(f"{PATH_EXPERIMENTS}config.json", 'w') as file:
+                    json.dump(data, file, indent=4,  separators=(',', ': '))
+            
         print(params.nodes_to_filter)
         datadict = local_dataset(df = df_PeMS,
                                 nodes = params.nodes_to_filter,
@@ -63,7 +72,7 @@ with open(f"{PATH_EXPERIMENTS}train.txt", 'w') as f:
                                 stride=params.stride,
                                 prediction_horizon=params.prediction_horizon,
                                 batch_size=params.batch_size)
-        print(datadict.keys())
+    
         if params.num_epochs_local_no_federation:
             # Local Training 
             train_losses = {}

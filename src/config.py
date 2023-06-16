@@ -17,13 +17,8 @@ class Params():
             self.center_and_reduce = config['center_and_reduce']
             self.normalize = config['normalize']
             self.sort_by_mean = config['sort_by_mean']
-<<<<<<< HEAD
             self.nodes_to_filter = config['nodes_to_filter']  
             self.number_of_nodes =  config['number_of_nodes'] 
-=======
-            self.nodes_to_filter = config['nodes_to_filter']
-            self.number_of_nodes = config['number_of_nodes']
->>>>>>> main
             self.window_size = config['window_size']
             self.prediction_horizon = config['prediction_horizon']
             self.stride = config['stride']
