@@ -18,6 +18,10 @@
     "epoch_local_retrain_after_federation": 100,
     "learning_rate": 0.001,
     "model": "LSTMModel",
+<<<<<<< HEAD
+    "save_model_path": "/LSTMModel/"
+=======
     "save_model_path": "/test/"
+>>>>>>> main
 }
 
