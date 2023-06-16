@@ -4,17 +4,17 @@
 from os import path
 
 
-import glob
 import json
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+from annotated_text import annotated_text
 
 
 from metrics import rmse
 from config import Params
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params, selection_of_experiment
+from utils_streamlit_app import load_numpy, selection_of_experiment
 from utils_streamlit_app import get_color_fed_vs_local
 
 st.set_page_config(layout="wide")
@@ -30,20 +30,23 @@ def plot_prediction_graph(experiment_path):
     index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
-    slider = st.slider('Select time?', 0, len(index) - params.prediction_horizon - params.window_size, params.prediction_horizon)
+    slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0)
 
     def plot_graph(color, label, title, y_pred, rmse_value, i):
         df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
         df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
         df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
         df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
+        df['Window'].at[params.window_size] = df[f'y_pred_{label}'][params.window_size]
+
         fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
         fig.add_scatter(x=df['Time'], y=df['y_true'], mode='lines', marker=dict(color='blue'), name='y_true')
         fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse_value:.2f}')
         fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error')
-        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh-%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh-%Mmin) |')} ", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
         fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
+
+        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
+        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')} ", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
         return fig
 
     rmse_local = rmse(y_true[slider, :].flatten(), y_pred[slider, :].flatten())
@@ -57,6 +60,12 @@ def plot_prediction_graph(experiment_path):
     # LOCAL
     local_fig = plot_graph(color_local, 'Local', "Local Prediction", y_pred, rmse_local, slider)
 
+    annotated_text(
+        "A lower RMSE value indicates a better prediction. The ",
+        ("green", "", "#75ff5b"), " prediction",
+        " is better than the ",
+        ("red", "", "#fe7597"), " one because it has a lower RMSE value")
+
     with st.spinner('Plotting...'):
         st.plotly_chart(fed_fig, use_container_width=True)
         st.plotly_chart(local_fig, use_container_width=True)
@@ -67,21 +76,8 @@ def plot_prediction_graph(experiment_path):
 #######################################################################
 st.header("Predictions Graph")
 
-experiments = "./experiments/"  # PATH where your experiments are saved
-if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
-
-    params_config_use_for_select = \
-        [
-            "time_serie_percentage_length",
-            "number_of_nodes",
-            "window_size",
-            "prediction_horizon",
-            "model"
-        ]
-    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
-
-    path_experiment_selected = selection_of_experiment(user_selection)
-
+path_experiment_selected = selection_of_experiment()
+if (path_experiment_selected is not None):
     with open(f"{path_experiment_selected}/test.json") as f:
         results = json.load(f)
     with open(f"{path_experiment_selected}/config.json") as f:

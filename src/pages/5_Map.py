@@ -3,20 +3,30 @@ from os import path
 
 import streamlit as st
 from streamlit_folium import folium_static
-import glob
 import json
 import pandas as pd
 import folium
+from screeninfo import get_monitors
+from annotated_text import annotated_text
 
 
 from metrics import maape
 from config import Params
 from utils_streamlit_app import create_circle_precision_predict, get_color_fed_vs_local
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params
+from utils_streamlit_app import load_numpy
 from utils_streamlit_app import selection_of_experiment
 
 
 st.set_page_config(layout="wide")
+
+height = []
+width = []
+for m in get_monitors():
+    height.append(m.height)
+    width.append(m.width)
+
+height = min(height)
+width = min(width)
 
 SEATTLE_ROADS = [
     [47.679470, -122.315626],
@@ -49,7 +59,8 @@ def plot_map(experiment_path):
     index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
-    slider = st.slider('Select time?', 0, len(index) - params.prediction_horizon - params.window_size, params.prediction_horizon, key="test")
+    slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0)
+    st.header(f"| {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')}")
 
     def plot_map_slider(y_true, y_pred, y_pred_fed, i, coords):
         maape_computed_local = 1 - (maape(y_true[i, :].flatten(), y_pred[i, :].flatten())) / 100.0
@@ -65,17 +76,23 @@ def plot_map(experiment_path):
         y_pred_fed = load_numpy(f"{experiment_path}/y_pred_fed_{mapping_sensor_with_nodes[sensor]}.npy")
         plot_map_slider(y_true, y_pred, y_pred_fed, slider, map_sensor_loc[sensor])
 
-    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(10, 10))
-    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(10, 10))
+    seattle_map_global.fit_bounds(seattle_map_global.get_bounds(), padding=(30, 30))
+    seattle_map_local.fit_bounds(seattle_map_local.get_bounds(), padding=(30, 30))
+
+    annotated_text(
+        "A higher percent indicates a better prediction. The ",
+        ("green", "", "#75ff5b"), " circle",
+        " is better than the ",
+        ("red", "", "#fe7597"), " one.")
 
     # Create a table
-    col1, col2 = st.columns(2, gap="small")
+    col1, col2 = st.columns((0.5, 0.5), gap="small")
     with col1:
         col1.header('Federated model results')
-        folium_static(seattle_map_global, width=650)
+        folium_static(seattle_map_global, width=width / 2 - 300)
     with col2:
         col2.header('Local models results')
-        folium_static(seattle_map_local, width=650)
+        folium_static(seattle_map_local, width=width / 2 - 300)
 
 #######################################################################
 # Main
@@ -84,20 +101,8 @@ def plot_map(experiment_path):
 
 st.header("Predictions Graph")
 
-experiments = "./experiments/"  # PATH where your experiments are saved
-if path_files := glob.glob(f"{experiments}**/config.json", recursive=True):
-
-    params_config_use_for_select = \
-        [
-            "time_serie_percentage_length",
-            "number_of_nodes",
-            "window_size",
-            "prediction_horizon",
-            "model"
-        ]
-    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
-
-    path_experiment_selected = selection_of_experiment(user_selection)
+path_experiment_selected = selection_of_experiment()
+if (path_experiment_selected is not None):
 
     with open(f"{path_experiment_selected}/test.json") as f:
         results = json.load(f)

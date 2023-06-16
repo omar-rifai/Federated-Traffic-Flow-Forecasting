@@ -2,6 +2,17 @@ import streamlit as st
 import json
 import numpy as np
 import folium
+import glob
+
+
+# A dictionary to map the options to their aliases
+OPTION_ALIASES = {
+    "time_serie_percentage_length": "Choose the time series length used to train the model",
+    "number_of_nodes": "Choose the number of sensors",
+    "window_size": "Choose the windows size",
+    "prediction_horizon": "Choose how far you want to see in the future",
+    "model": "Choose the model"
+}
 
 
 @st.cache_resource
@@ -81,7 +92,20 @@ def format_windows_prediction_size(value):
     return f"{int((value * 5 ) / 60)}h (t+{(value)})"
 
 
-def selection_of_experiment(possible_choice):
+#  A function to convert the option to its alias
+def format_option(option):
+    return OPTION_ALIASES.get(option, option)
+
+
+def format_radio(value):
+    from config import Params
+    params = Params(f'{value}')
+    return f"{params.model} | Sensor(s): ({params.number_of_nodes}) {params.nodes_to_filter} \
+    | prediction {format_windows_prediction_size(params.prediction_horizon)} \
+    | the length of the time series used {params.time_serie_percentage_length * 100}%"
+
+
+def selection_of_experiment():
     """
     Create the visual for choosing an experiment
 
@@ -92,32 +116,39 @@ def selection_of_experiment(possible_choice):
     Returns:
         return the path to the experiment that the user choose
     """
-    st.subheader("Selection of experiment")
-    st.markdown("""
-                *The selection is sequential*
-                """)
 
-    time_serie_percentage_length = st.selectbox('Choose the time series length used to train the model', possible_choice["time_serie_percentage_length"].keys())
+    experiments = "./experiments/"  # PATH where your experiments are saved
+    if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
 
-    nb_captor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
-    nb_captor = st.selectbox('Choose the number of sensors', nb_captor_filtered.keys())
+        options = list(OPTION_ALIASES.keys())
+        map_path_experiments_params = map_path_experiments_to_params(path_files, options)
 
-    windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_captor])
-    window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys(), format_func=format_windows_prediction_size)
-
-    horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
-    horizon_size = st.selectbox('Choose how far you want to see in the future', horizon_filtered.keys(), format_func=format_windows_prediction_size)
-
-    models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
-    model = st.selectbox('Choose the model', models_filtered.keys())
-
-    if len(models_filtered[model]) <= 1:
-        return ("\\".join(models_filtered[model][0].split("\\")[:-1]))
-
-    st.write("TODO : WARNING ! More than one results correspond to your research pick only one (see below)")
-    select_exp = st.selectbox("Choose", models_filtered[model])
-    select_exp = models_filtered[model].index(select_exp)
-    return ("\\".join(models_filtered[model][select_exp].split("\\")[:-1]))
+        selected_options = st.multiselect(
+            "Choose the options you want to select",
+            options,
+            format_func=format_option,
+            default=["number_of_nodes", "prediction_horizon"]
+        )
+        if (len(selected_options) > 0):
+            test = {}
+            first_option = selected_options[0]
+            test[first_option] = {}
+            test[first_option]["select"] = st.selectbox(
+                format_option(first_option),
+                map_path_experiments_params[first_option].keys()
+            )
+            test[first_option]["path_file"] = map_path_experiments_params[first_option][test[first_option]["select"]]
+            for i in range(1, len(selected_options)):
+                option_filtered = filtering_path_file(map_path_experiments_params[selected_options[i]], map_path_experiments_params[selected_options[i - 1]][test[selected_options[i - 1]]["select"]])
+                test[selected_options[i]] = {}
+                test[selected_options[i]]["select"] = st.selectbox(
+                    format_option(selected_options[i]),
+                    option_filtered.keys()
+                )
+                test[selected_options[i]]["path_file"] = option_filtered[test[selected_options[i]]["select"]]
+            select_exp = st.radio("Choose", list(test[selected_options[len(selected_options) - 1]]["path_file"]), format_func=format_radio)
+            return ("\\".join(select_exp.split("\\")[:-1]))
+        return None
 
 
 def rgb_to_hex(rgb):
