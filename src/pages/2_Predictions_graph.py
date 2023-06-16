@@ -34,19 +34,33 @@ def plot_prediction_graph(experiment_path):
 
     def plot_graph(color, label, title, y_pred, rmse_value, i):
         df = pd.DataFrame({'Time': index[i:i + params.window_size + params.prediction_horizon], 'Traffic Flow': test_set[i:i + params.window_size + params.prediction_horizon].flatten()})
-        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] <= index[i + params.window_size - 1]))
-        df['y_true'] = df['Traffic Flow'].where(df['Time'] >= index[i + params.window_size - 1])
+        df['Window'] = df['Traffic Flow'].where((df['Time'] >= index[i]) & (df['Time'] < index[i + params.window_size]))
+        df['y_true'] = df['Traffic Flow'].where((df['Time'] >= index[i + params.window_size - 1]))
         df[f'y_pred_{label}'] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i, :]])
-        df['Window'].at[params.window_size] = df[f'y_pred_{label}'][params.window_size]
+        df[f"y_pred_{label}_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i]])
+        df[f"y_pred_{label}_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
 
         fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
         fig.add_scatter(x=df['Time'], y=df['y_true'], mode='lines', marker=dict(color='blue'), name='y_true')
         fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse_value:.2f}')
-        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error')
+        fig.add_scatter(x=df['Time'], y=df[f"y_pred_{label}_link_window"], mode='lines', marker=dict(color=color), showlegend=False)
+        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error', marker=dict(color="#FFAB55"))
         fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
-
-        fig.update_xaxes(tickformat='%H:%M', dtick=3600000)
-        fig.update_layout(xaxis_title='Time', yaxis_title='Traffic Flow', title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')} ", title_font=dict(size=28), legend=dict(title='Legends', font=dict(size=16)))
+        fig.update_xaxes(
+            title='Time',
+            tickformat='%H:%M',
+            dtick=3600000
+        )
+        fig.update_yaxes(
+            title="Traffic Flow",
+            range=[min(min(y_true.flatten()), min(y_pred.flatten())), max(max(y_true.flatten()), max(y_pred.flatten()))],
+            dtick=50
+        )
+        fig.update_layout(
+            title=f"| {title} | {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')} ",
+            title_font=dict(size=28),
+            legend=dict(title='Legends', font=dict(size=16))
+        )
         return fig
 
     rmse_local = rmse(y_true[slider, :].flatten(), y_pred[slider, :].flatten())
@@ -87,10 +101,7 @@ if (path_experiment_selected is not None):
     for node in results.keys():
         mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-    if 'sensor_select' not in st.session_state:
-        st.session_state['sensor_select'] = 0
-    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys(), index=st.session_state['sensor_select'])
-    st.session_state['sensor_select'] = int(mapping_sensor_with_nodes[sensor_select])
+    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
 
     metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
