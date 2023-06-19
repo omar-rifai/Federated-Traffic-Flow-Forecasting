@@ -103,13 +103,14 @@ with open(f"{PATH_EXPERIMENTS}train.txt", 'w') as f:
                 print(f'Retraining the federated model locally on node {node} for {params.epoch_local_retrain_after_federation} epochs')
                 new_local_model = model(input_size, hidden_size, output_size, num_layers)
                 model_path= f'{PATH_EXPERIMENTS}bestmodel_node{node}.pth'
+                local_model = model(input_size, hidden_size, output_size, num_layers)
                 local_model.load_state_dict(torch.load(model_path))
                 torch.save(local_model.state_dict(), f'{PATH_EXPERIMENTS}oldmodel_node{node}.pth')
 
                 data_dict = datadict[node]
                 local_model, train_losses[node], val_losses[node] = train_model(new_local_model, data_dict['train'], data_dict['val'], 
                                                                         model_path = f'{PATH_EXPERIMENTS}bestmodel_node{node}.pth',
-                                                                        num_epochs=params.num_epochs_local_no_federation, 
+                                                                        num_epochs=params.epoch_local_retrain_after_federation, 
                                                                         remove = False, learning_rate=params.learning_rate)
                 
                 
