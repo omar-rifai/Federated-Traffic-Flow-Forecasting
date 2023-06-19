@@ -127,7 +127,7 @@ def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
             "Choose the options you want to use to filter the experiments",
             options,
             format_func=format_option,
-            default=["number_of_nodes", "prediction_horizon"]
+            default=["number_of_nodes", "prediction_horizon", "model"]
         )
 
         if (len(selected_options) > 0):
@@ -177,8 +177,8 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
             Hex code HTML
     """
     lat, long = marker_location
-    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
-    folium.Circle(location=[lat + 0.0020, long + 0.0018], color=color, radius=100 * value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+    # folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=1, fill_color=color).add_to(map_folium)
     folium.map.Marker([lat + 0.0022, long + 0.0014], icon=folium.features.DivIcon(html=f"<div style='font-weight:bold; font-size: 15pt; color: black'>{int(value_percent * 100)}%</div>")).add_to(map_folium)
     # folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
     # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
