@@ -12,7 +12,9 @@ import numpy as np
 import plotly.graph_objects as go
 
 
-from utils_streamlit_app import load_numpy, map_path_experiments_to_params, filtering_path_file, get_color_fed_vs_local
+from utils_streamlit_app import load_numpy, map_path_experiments_to_params, filtering_path_file
+from utils_streamlit_app import get_color_fed_vs_local, format_option, format_windows_prediction_size
+from utils_streamlit_app import format_radio
 from config import Params
 
 st.set_page_config(layout="wide")
@@ -24,13 +26,22 @@ def compute_absolute_error(path):
     return (np.abs(y_pred_fed.flatten() - y_true.flatten()))
 
 
+def remove_outliers(data, threshold=1.5):
+    q1 = np.percentile(data, 25)
+    q3 = np.percentile(data, 75)
+    iqr = q3 - q1
+    lower_bound = q1 - threshold * iqr
+    upper_bound = q3 + threshold * iqr
+    return data[(data >= lower_bound) & (data <= upper_bound)]
+
+
 def plot_slider(experiment_path):
     ae_model_1 = compute_absolute_error(experiment_path[0])
     ae_model_2 = compute_absolute_error(experiment_path[1])
 
     def plot_box(title, ae, max_y_value, color):
         fig = go.Figure()
-        box = go.Box(y=ae, marker_color=color, boxmean='sd', name=title, boxpoints="suspectedoutliers")
+        box = go.Box(y=ae, marker_color=color, boxmean='sd', name=title, boxpoints=False)
         fig.add_trace(box)
         fig.update_layout(
             title={
@@ -51,6 +62,9 @@ def plot_slider(experiment_path):
         fig.update_traces(jitter=0)
         return fig
 
+    ae_model_1 = remove_outliers(ae_model_1)
+    ae_model_2 = remove_outliers(ae_model_2)
+
     max_y_value = max(max(ae_model_1), max(ae_model_2))
 
     model_1_color, model_2_color = get_color_fed_vs_local(np.mean(ae_model_1), np.mean(ae_model_2), superior=False)
@@ -70,32 +84,79 @@ def plot_slider(experiment_path):
             st.plotly_chart(fig_model_2, use_container_width=False)
 
 
-def selection_of_experiment(possible_choice):
-    time_serie_percentage_length = st.selectbox('Choose the time series length', possible_choice["time_serie_percentage_length"].keys())
+OPTION_ALIASES = {
+    "time_serie_percentage_length": "Choose the time series length used to train the model",
+    "number_of_nodes": "Choose the number of sensors",
+    "window_size": "Choose the windows size",
+    "prediction_horizon": "Choose how far you want to see in the future",
+    "model": "Choose the model"
+}
 
-    nb_sensor_filtered = filtering_path_file(possible_choice["number_of_nodes"], possible_choice["time_serie_percentage_length"][time_serie_percentage_length])
-    nb_sensor = st.selectbox('Choose the number of sensor_select', nb_sensor_filtered.keys())
 
-    windows_size_filtered = filtering_path_file(possible_choice["window_size"], possible_choice["number_of_nodes"][nb_sensor])
-    window_size = st.selectbox('Choose the windows size', windows_size_filtered.keys())
+def compare_config(path_file_1, path_file_2):
+    with open(f"{path_file_1}/config.json") as f:
+        config_1 = json.load(f)
+    with open(f"{path_file_2}/config.json") as f:
+        config_2 = json.load(f)
 
-    horizon_filtered = filtering_path_file(possible_choice["prediction_horizon"], windows_size_filtered[window_size])
-    horizon_size = st.selectbox('Choose the prediction horizon', horizon_filtered.keys())
+    return config_1["nodes_to_filter"] == config_2["nodes_to_filter"]
 
-    models_filtered = filtering_path_file(possible_choice["model"], horizon_filtered[horizon_size])
 
-    col1_model_1, col2_model_2 = st.columns(2)
-    with col1_model_1:
-        model_1 = st.radio(
-            "Choose the first model",
-            models_filtered.values(), key="model_1")
-    with col2_model_2:
-        model_2 = st.radio(
-            "Choose the second model",
-            models_filtered.values(), key="model_2")
+def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
+    experiments = "./experiments/"  # PATH where all the experiments are saved
+    if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
 
-    return [model_1[0], model_2[0]]
+        options = list(OPTION_ALIASES.keys())
+        map_path_experiments_params = map_path_experiments_to_params(path_files, options)
 
+        selectbox_options = {}
+        selectbox_options["number_of_nodes"] = {
+            "select": st.selectbox(
+                "Choose the number of sensors",
+                map_path_experiments_params["number_of_nodes"].keys()
+            )
+        }
+
+        options.remove("number_of_nodes")
+        selected_options = st.multiselect(
+            "Choose the options you want to use to filter the experiments",
+            options,
+            format_func=format_option,
+            default=["prediction_horizon", "model"]
+        )
+
+        previous_path_file = map_path_experiments_params["number_of_nodes"][selectbox_options["number_of_nodes"]["select"]]
+        for option in selected_options:
+            option_filtered = filtering_path_file(map_path_experiments_params[option], previous_path_file)
+            selectbox_options[option] = {
+                "select": st.selectbox(
+                    format_option(option),
+                    option_filtered.keys(),
+                    format_func=format_windows_prediction_size
+                    if option
+                    in ["window_size", "prediction_horizon"]
+                    else str,
+                )
+            }
+            previous_path_file = option_filtered[selectbox_options[option]["select"]]
+
+        if len(previous_path_file) > 1:
+            col1_model_1, col2_model_2 = st.columns(2)
+
+            with col1_model_1:
+                model_1 = st.radio(
+                    "Choose the first model",
+                    list(previous_path_file), key="model_1", format_func=format_radio)
+            with col2_model_2:
+                model_2 = st.radio(
+                    "Choose the second model",
+                    list(previous_path_file), key="model_2", format_func=format_radio)
+            return [("\\".join(model_1.split("\\")[:-1])), ("\\".join(model_2.split("\\")[:-1]))]
+        else:
+            st.header(":red[Nothing match with your filter]")
+            for option in selected_options:
+                st.markdown(f"""* {option}""")
+    return None
 
 #######################################################################
 # Main
@@ -103,24 +164,10 @@ def selection_of_experiment(possible_choice):
 
 
 st.header("Comparison Models")
-
-experiments = "experiments"  # PATH where your experiments are saved
-if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
-
-    params_config_use_for_select = \
-        [
-            "time_serie_percentage_length",
-            "number_of_nodes",
-            "window_size",
-            "prediction_horizon",
-            "model"
-        ]
-    user_selection = map_path_experiments_to_params(path_files, params_config_use_for_select)
-
-    paths_experiment_selected = selection_of_experiment(user_selection)
-
-    path_model_1 = ("\\".join(paths_experiment_selected[0].split("\\")[:-1]))
-    path_model_2 = ("\\".join(paths_experiment_selected[1].split("\\")[:-1]))
+paths_experiment_selected = selection_of_experiment()
+if (paths_experiment_selected is not None):
+    path_model_1 = paths_experiment_selected[0]
+    path_model_2 = paths_experiment_selected[1]
 
     with open(f"{path_model_1}/test.json") as f:
         results_1 = json.load(f)
@@ -158,7 +205,7 @@ if path_files := glob.glob(f"./{experiments}/**/config.json", recursive=True):
     _, c2_title_df, _ = st.columns((2, 1, 2))
 
     with c2_title_df:
-        st.header("sensor in Federation")
+        st.header("Sensor in Federation")
 
     c1_model_1, c2_model_2 = st.columns(2)
     with c1_model_1:
