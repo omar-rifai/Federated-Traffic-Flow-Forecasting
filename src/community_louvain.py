@@ -7,12 +7,24 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import community.community_louvain as community
 import json
-
+import argparse
 # Set random seed
 np.random.seed(42)
 
+# Create an argument parser
+parser = argparse.ArgumentParser(description='Process some data.')
+parser.add_argument('--batch', type=int, default=32, help='batch size')
+parser.add_argument('--percentage', type=float, default=0.25, help='percentage')
+parser.add_argument('--horizon', type=int, default=12, help='horizon')
+# Parse the command-line arguments
+args = parser.parse_args()
+
+# Access the batch size value
+batch_size = args.batch
+percentage = args.percentage
+horizon = args.horizon
 # File paths
-flow_file = "./data/PEMS04/PEMS04.npz"
+flow_file = "./data/PEMS04/pems04.npz"
 csv_file = "./data/PEMS04/distance.csv"
 
 # Load data
@@ -75,18 +87,18 @@ print("Community dictionary:", community_dict)
 
 # JSON configuration template
 jsondict = {
-    "time_serie_percentage_length": 0.25,
-    "batch_size": 8000,
+    "time_serie_percentage_length": percentage,
+    "batch_size": batch_size,
     "init_node": 0,
-    "n_neighbours": 306,
+    "n_neighbours": 30,
     "smooth": True,
     "center_and_reduce": True,
     "normalize": False,
     "sort_by_mean": False,
     "nodes_to_filter": [],
     "number_of_nodes": 0,
-    "window_size": 168,
-    "prediction_horizon": 24,
+    "window_size": 7*horizon,
+    "prediction_horizon": horizon,
     "stride": 1,
     "communication_rounds": 200,
     "num_epochs_local_no_federation": 200,
@@ -94,7 +106,7 @@ jsondict = {
     "epoch_local_retrain_after_federation": 200,
     "learning_rate": 0.001,
     "model": "LSTMModel",
-    "save_model_path": "LSTMp50h48r200e10n261d5"
+    "save_model_path": ""
 }
 
 # Helper function to convert to integer
@@ -103,6 +115,7 @@ f = lambda x: int(x)
 # Generate JSON files for each community
 for i in range(27):
     jsondict["nodes_to_filter"] = [f(x) for x in communities[i]]
+    jsondict["init_node"] = jsondict["nodes_to_filter"][0]
     jsondict["number_of_nodes"] = len(jsondict["nodes_to_filter"])
     jsondict["save_model_path"] = f"/community{i}/"
     with open(f"./experiments/community{i}.json", 'w') as file:
