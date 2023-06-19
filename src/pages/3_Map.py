@@ -56,7 +56,7 @@ st.title('[WIP] carte Analyses results experimentation')
 
 
 def plot_map(experiment_path):
-    index = load_numpy(f"{experiment_path}/index_{mapping_sensor_with_nodes[sensor_select]}.npy")
+    index = load_numpy(f"{experiment_path}/index_0.npy")
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
     slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0)
@@ -113,8 +113,6 @@ if (path_experiment_selected is not None):
     for node in results.keys():
         mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
-
     map_sensor_loc = {}
     seattle_roads_crop = [SEATTLE_ROADS[i] for i in range(len(mapping_sensor_with_nodes.keys()))]
 
@@ -126,23 +124,7 @@ if (path_experiment_selected is not None):
         folium.Marker(location=map_sensor_loc[sensor], tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_global)
         folium.Marker(location=map_sensor_loc[sensor], tooltip=tooltip, icon=folium.Icon(color="black")).add_to(seattle_map_local)
 
-    metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
-
-    local_node = []
-    if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():
-        local_node = results[mapping_sensor_with_nodes[sensor_select]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["Sensor alone"])
-    federated_node = []
-    if "Federated" in results[mapping_sensor_with_nodes[sensor_select]].keys():
-        federated_node = results[mapping_sensor_with_nodes[sensor_select]]["Federated"]
-        federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["Sensor in Federation"])
-
-    st.subheader("Sensor in Federation vs Sensor alone")
-    fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
-
     params = Params(f'{path_experiment_selected}/config.json')
-    if (path.exists(f'{path_experiment_selected}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy') and
-        path.exists(f"{path_experiment_selected}/y_pred_fed_{mapping_sensor_with_nodes[sensor_select]}.npy")):
+    if (path.exists(f'{path_experiment_selected}/y_true_local_0.npy') and
+        path.exists(f"{path_experiment_selected}/y_pred_fed_0.npy")):
         plot_map(path_experiment_selected)
