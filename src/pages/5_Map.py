@@ -113,10 +113,7 @@ if (path_experiment_selected is not None):
     for node in results.keys():
         mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-    if 'sensor_select' not in st.session_state:
-        st.session_state['sensor_select'] = 0
-    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys(), index=st.session_state['sensor_select'])
-    st.session_state['sensor_select'] = int(mapping_sensor_with_nodes[sensor_select])
+    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
 
     map_sensor_loc = {}
     seattle_roads_crop = [SEATTLE_ROADS[i] for i in range(len(mapping_sensor_with_nodes.keys()))]

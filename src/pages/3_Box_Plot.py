@@ -88,10 +88,7 @@ if (path_experiment_selected is not None):
     for node in results.keys():
         mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-    if 'sensor_select' not in st.session_state:
-        st.session_state['sensor_select'] = 0
-    sensor_select = st.selectbox('Choose the sensor_select', mapping_sensor_with_nodes.keys(), index=st.session_state['sensor_select'])
-    st.session_state['sensor_select'] = int(mapping_sensor_with_nodes[sensor_select])
+    sensor_select = st.selectbox('Choose the sensor_select', mapping_sensor_with_nodes.keys())
 
     metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])

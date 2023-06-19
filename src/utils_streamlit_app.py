@@ -5,7 +5,8 @@ import folium
 import glob
 
 
-# A dictionary to map the options to their aliases
+#  A dictionary to map the options to their aliases
+#  Add here the parameters that you want the user use to filter among all the experiments
 OPTION_ALIASES = {
     "time_serie_percentage_length": "Choose the time series length used to train the model",
     "number_of_nodes": "Choose the number of sensors",
@@ -23,7 +24,7 @@ def filtering_path_file(file_dict, filter_list):
     Parameters
     ----------
     file_dict : dict
-        The dictionary that maps some keys to lists of files.
+        The dictionary that map each options with a list of files.
     filter_list : list
         The list of files that are used as a filter.
 
@@ -51,7 +52,7 @@ def load_numpy(path):
 @st.cache_resource
 def map_path_experiments_to_params(path_files, params_config_use_for_select):
     """
-    Map all path experiments with parameters of their config.json
+    Map all path experiments with the parameters of their config.json
 
     Parameters:
     -----------
@@ -61,7 +62,7 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
             The parameters use for the selection
 
     Returns:
-        The mapping between path to the experiments and parameters of the experiements
+        The mapping between path to the experiment and the parameters of the experiement
         exemple :
         mapping = {
             "nb_node" : {
@@ -79,12 +80,12 @@ def map_path_experiments_to_params(path_files, params_config_use_for_select):
     for param in params_config_use_for_select:
         mapping_path_with_param[param] = {}
         for file in path_files:
-            with open(file) as f:
+            with open(file) as f:  # Load the config of an experiment
                 config = json.load(f)
             if config[param] in mapping_path_with_param[param].keys():
-                mapping_path_with_param[param][config[param]].append(file)
+                mapping_path_with_param[param][config[param]].append(file)  # Map the path to the experiment to a parameter and the value of the parameter (see exemple)
             else:
-                mapping_path_with_param[param][config[param]] = [file]
+                mapping_path_with_param[param][config[param]] = [file]  # Map the path to the experiment to a parameter and the value of the parameter (see exemple)
     return mapping_path_with_param
 
 
@@ -97,56 +98,61 @@ def format_option(option):
     return OPTION_ALIASES.get(option, option)
 
 
-def format_radio(value):
+def format_radio(path_file_experiment):
     from config import Params
-    params = Params(f'{value}')
+    params = Params(f'{path_file_experiment}')
     return f"{params.model} | Sensor(s): ({params.number_of_nodes}) {params.nodes_to_filter} \
     | prediction {format_windows_prediction_size(params.prediction_horizon)} \
     | the length of the time series used {params.time_serie_percentage_length * 100}%"
 
 
-def selection_of_experiment():
+def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
     """
-    Create the visual for choosing an experiment
+    Create the visual to choose an experiment
 
     Parameters:
     -----------
-
 
     Returns:
         return the path to the experiment that the user choose
     """
 
-    experiments = "./experiments/"  # PATH where your experiments are saved
+    experiments = "./experiments/"  # PATH where all the experiments are saved
     if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
 
         options = list(OPTION_ALIASES.keys())
         map_path_experiments_params = map_path_experiments_to_params(path_files, options)
 
         selected_options = st.multiselect(
-            "Choose the options you want to select",
+            "Choose the options you want to use to filter the experiments",
             options,
             format_func=format_option,
             default=["number_of_nodes", "prediction_horizon"]
         )
+
         if (len(selected_options) > 0):
-            test = {}
-            first_option = selected_options[0]
-            test[first_option] = {}
-            test[first_option]["select"] = st.selectbox(
-                format_option(first_option),
-                map_path_experiments_params[first_option].keys()
-            )
-            test[first_option]["path_file"] = map_path_experiments_params[first_option][test[first_option]["select"]]
-            for i in range(1, len(selected_options)):
-                option_filtered = filtering_path_file(map_path_experiments_params[selected_options[i]], map_path_experiments_params[selected_options[i - 1]][test[selected_options[i - 1]]["select"]])
-                test[selected_options[i]] = {}
-                test[selected_options[i]]["select"] = st.selectbox(
-                    format_option(selected_options[i]),
-                    option_filtered.keys()
-                )
-                test[selected_options[i]]["path_file"] = option_filtered[test[selected_options[i]]["select"]]
-            select_exp = st.radio("Choose", list(test[selected_options[len(selected_options) - 1]]["path_file"]), format_func=format_radio)
+            selectbox_options = {}
+            previous_option = None
+            previous_path_file = None
+            for option in selected_options:
+                if previous_option is not None:
+                    option_filtered = filtering_path_file(map_path_experiments_params[option], previous_path_file)
+                else:
+                    option_filtered = map_path_experiments_params[option]
+                selectbox_options[option] = {
+                    "select": st.selectbox(
+                        format_option(option),
+                        option_filtered.keys(),
+                        format_func=format_windows_prediction_size
+                        if option
+                        in ["window_size", "prediction_horizon"]
+                        else str,
+                    )
+                }
+                previous_path_file = option_filtered[selectbox_options[option]["select"]]
+                previous_option = option
+
+            select_exp = st.radio("Choose", list(previous_path_file), format_func=format_radio)
             return ("\\".join(select_exp.split("\\")[:-1]))
         return None
 
