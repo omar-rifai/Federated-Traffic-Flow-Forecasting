@@ -5,6 +5,7 @@ from os import path
 
 
 import json
+from matplotlib import pyplot as plt
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -18,6 +19,15 @@ from config import Params
 st.set_page_config(layout="wide")
 
 
+def remove_outliers(data, threshold=1.5):
+    q1 = np.percentile(data, 25)
+    q3 = np.percentile(data, 75)
+    iqr = q3 - q1
+    lower_bound = q1 - threshold * iqr
+    upper_bound = q3 + threshold * iqr
+    return data[(data >= lower_bound) & (data <= upper_bound)]
+
+
 def plot_slider(experiment_path):
     y_true = load_numpy(f"{experiment_path}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy")
     y_pred = load_numpy(f"{experiment_path}/y_pred_local_{mapping_sensor_with_nodes[sensor_select]}.npy")
@@ -25,7 +35,7 @@ def plot_slider(experiment_path):
 
     def plot_box(title, ae, max_y_value, color):
         fig = go.Figure()
-        box = go.Box(y=ae, marker_color=color, boxmean='sd', name=title, boxpoints="suspectedoutliers")
+        box = go.Box(y=ae, marker_color=color, boxmean='sd', name=title, boxpoints=False)
         fig.add_trace(box)
         fig.update_layout(
             title={
@@ -46,8 +56,8 @@ def plot_slider(experiment_path):
         fig.update_traces(jitter=0)
         return fig
 
-    ae_fed = (np.abs(y_pred_fed.flatten() - y_true.flatten()))
-    ae_local = (np.abs(y_pred.flatten() - y_true.flatten()))
+    ae_fed = remove_outliers((np.abs(y_pred_fed.flatten() - y_true.flatten())))
+    ae_local = remove_outliers((np.abs(y_pred.flatten() - y_true.flatten())))
     max_y_value = max(max(ae_fed), max(ae_local))
 
     rmse_local = rmse(y_true.flatten(), y_pred.flatten())
