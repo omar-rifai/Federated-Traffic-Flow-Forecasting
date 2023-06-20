@@ -198,7 +198,7 @@ def style_dataframe(df):
         if i % 2 == 0:
             styles.append({
                 'selector': f'tbody tr:nth-child({i+1})',
-                'props': [('background-color', 'rgba(200, 200, 200, 0.8)', ), ('color', 'black'), ('font-weight', 'bold')],
+                'props': [('background-color', 'rgba(200, 200, 200, 0.8)', ), ('color', 'black')],
             })
         else:
             styles.append({

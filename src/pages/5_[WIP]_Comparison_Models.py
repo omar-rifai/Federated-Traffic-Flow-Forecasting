@@ -109,20 +109,20 @@ def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
         options = list(OPTION_ALIASES.keys())
         map_path_experiments_params = map_path_experiments_to_params(path_files, options)
 
-        selectbox_options = {}
-        selectbox_options["number_of_nodes"] = {
-            "select": st.selectbox(
-                "Choose the number of sensors",
-                map_path_experiments_params["number_of_nodes"].keys()
-            )
+        selectbox_options = {
+            "number_of_nodes": {
+                "select": st.selectbox(
+                    "Choose the number of sensors",
+                    map_path_experiments_params["number_of_nodes"].keys(),
+                )
+            }
         }
-
         options.remove("number_of_nodes")
         selected_options = st.multiselect(
             "Choose the options you want to use to filter the experiments",
             options,
             format_func=format_option,
-            default=["prediction_horizon", "model"]
+            default=[]
         )
 
         previous_path_file = map_path_experiments_params["number_of_nodes"][selectbox_options["number_of_nodes"]["select"]]
@@ -193,14 +193,22 @@ if (paths_experiment_selected is not None):
     multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
 
     federated_node_model_1 = []
+    local_node_model_1 = []
     if "Federated" in results_1["0"].keys():
         federated_node_model_1.append(results_1[mapping_sensor_with_nodes_model_1[sensor_select]]["Federated"])
         federated_node_model_1 = pd.DataFrame(federated_node_model_1, columns=multiselect_metrics, index=["sensor in Federation"])
+    if "local_only" in results_1["0"].keys():
+        local_node_model_1.append(results_1[mapping_sensor_with_nodes_model_1[sensor_select]]["local_only"])
+        local_node_model_1 = pd.DataFrame(local_node_model_1, columns=multiselect_metrics, index=["sensor in Local"])
 
     federated_node_model_2 = []
+    local_node_model_2 = []
     if "Federated" in results_1["0"].keys():
         federated_node_model_2.append(results_2[mapping_sensor_with_nodes_model_2[sensor_select]]["Federated"])
         federated_node_model_2 = pd.DataFrame(federated_node_model_2, columns=multiselect_metrics, index=["sensor in Federation"])
+    if "local_only" in results_1["0"].keys():
+        local_node_model_2.append(results_1[mapping_sensor_with_nodes_model_1[sensor_select]]["local_only"])
+        local_node_model_2 = pd.DataFrame(local_node_model_2, columns=multiselect_metrics, index=["sensor in Local"])
 
     _, c2_title_df, _ = st.columns((2, 1, 2))
 
@@ -209,13 +217,15 @@ if (paths_experiment_selected is not None):
 
     c1_model_1, c2_model_2 = st.columns(2)
     with c1_model_1:
+        merged_stats_model_1 = pd.concat((federated_node_model_1, local_node_model_1), axis=0)
         model_1_name = paths_experiment_selected[0].split("\\")[1]
         st.subheader(f"{model_1_name}")
-        st.table(federated_node_model_1.style.set_table_styles(style_dataframe(federated_node_model_1)).format("{:.2f}"))
+        st.table(merged_stats_model_1.style.set_table_styles(style_dataframe(merged_stats_model_1)).format("{:.2f}"))
     with c2_model_2:
+        merged_stats_model_2 = pd.concat((federated_node_model_2, local_node_model_2), axis=0)
         model_2_name = paths_experiment_selected[1].split("\\")[1]
         st.subheader(f"{model_2_name}")
-        st.table(federated_node_model_2.style.set_table_styles(style_dataframe(federated_node_model_2)).format("{:.2f}"))
+        st.table(merged_stats_model_2.style.set_table_styles(style_dataframe(merged_stats_model_2)).format("{:.2f}"))
 
     params_model_1 = Params(f'{path_model_1}/config.json')
     params_model_2 = Params(f'{path_model_2}/config.json')
