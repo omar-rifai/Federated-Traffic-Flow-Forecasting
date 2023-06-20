@@ -5,7 +5,6 @@ from os import path
 
 
 import json
-from matplotlib import pyplot as plt
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -13,12 +12,15 @@ import plotly.graph_objects as go
 
 
 from metrics import rmse
-from utils_streamlit_app import get_color_fed_vs_local, load_numpy, selection_of_experiment
+from utils_streamlit_app import get_color_fed_vs_local, load_numpy, selection_of_experiment, style_dataframe
 from config import Params
 
 st.set_page_config(layout="wide")
 
 
+###############################################################################
+# Functions
+###############################################################################
 def remove_outliers(data, threshold=1.5):
     q1 = np.percentile(data, 25)
     q3 = np.percentile(data, 75)
@@ -82,8 +84,6 @@ def plot_slider(experiment_path):
 #######################################################################
 # Main
 #######################################################################
-
-
 st.header("Box Plot")
 
 path_experiment_selected = selection_of_experiment()
@@ -115,7 +115,7 @@ if (path_experiment_selected is not None):
 
     st.subheader("sensor in Federation vs sensor alone")
     fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+    st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
 
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{path_experiment_selected}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy') and

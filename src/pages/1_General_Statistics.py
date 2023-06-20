@@ -6,32 +6,9 @@ import streamlit as st
 import pandas as pd
 
 
-from utils_streamlit_app import selection_of_experiment
+from utils_streamlit_app import selection_of_experiment, style_dataframe
 
 st.set_page_config(layout="wide")
-
-
-#######################################################################
-# Functions
-#######################################################################
-def style_dataframe(df):
-    styles = []
-    for i in range(len(df)):
-        if i % 2 == 0:
-            styles.append({
-                'selector': f'tbody tr:nth-child({i+1})',
-                'props': [('background-color', 'rgba(150, 150, 100, 0.4)', ), ('color', 'black'), ('font-weight', 'bold')],
-            })
-        else:
-            styles.append({
-                'selector': f'tbody tr:nth-child({i+1})',
-                'props': [('background-color', 'rgba(255, 150, 0, 0.4)'), ('color', 'black')],
-            })
-    styles.append({
-        'selector': 'th',
-        'props': [('font-weight', 'bold'), ('color', 'black')]
-    })
-    return styles
 
 
 #######################################################################

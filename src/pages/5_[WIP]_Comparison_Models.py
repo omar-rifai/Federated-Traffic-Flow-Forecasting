@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 
 from utils_streamlit_app import load_numpy, map_path_experiments_to_params, filtering_path_file
 from utils_streamlit_app import get_color_fed_vs_local, format_option, format_windows_prediction_size
-from utils_streamlit_app import format_radio
+from utils_streamlit_app import format_radio, style_dataframe
 from config import Params
 
 st.set_page_config(layout="wide")
@@ -211,11 +211,11 @@ if (paths_experiment_selected is not None):
     with c1_model_1:
         model_1_name = paths_experiment_selected[0].split("\\")[1]
         st.subheader(f"{model_1_name}")
-        st.table(federated_node_model_1.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+        st.table(federated_node_model_1.style.set_table_styles(style_dataframe(federated_node_model_1)).format("{:.2f}"))
     with c2_model_2:
         model_2_name = paths_experiment_selected[1].split("\\")[1]
         st.subheader(f"{model_2_name}")
-        st.table(federated_node_model_2.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+        st.table(federated_node_model_2.style.set_table_styles(style_dataframe(federated_node_model_2)).format("{:.2f}"))
 
     params_model_1 = Params(f'{path_model_1}/config.json')
     params_model_2 = Params(f'{path_model_2}/config.json')

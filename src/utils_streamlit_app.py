@@ -190,3 +190,36 @@ def get_color_fed_vs_local(fed_value, local_value, superior=True):
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
     return (green, red) if ((fed_value) < (local_value)) else (red, green)
+
+
+def style_dataframe(df):
+    styles = []
+    for i in range(len(df)):
+        if i % 2 == 0:
+            styles.append({
+                'selector': f'tbody tr:nth-child({i+1})',
+                'props': [('background-color', 'rgba(200, 200, 200, 0.8)', ), ('color', 'black'), ('font-weight', 'bold')],
+            })
+        else:
+            styles.append({
+                'selector': f'tbody tr:nth-child({i+1})',
+                'props': [('background-color', 'rgba(230, 230, 230, 0.8)'), ('color', 'black')],
+            })
+    styles.extend(
+        (
+            {
+                'selector': 'th',
+                'props': [('font-weight', 'bold'), ('color', 'black')],
+            },
+            {
+                'selector': 'tbody tr > :nth-child(1)',
+                'props': [
+                    ('background-color', 'rgba(160, 100, 170, 0.3)'),
+                    ('color', 'black'),
+                ],
+            },
+        )
+    )
+    return styles
+
+

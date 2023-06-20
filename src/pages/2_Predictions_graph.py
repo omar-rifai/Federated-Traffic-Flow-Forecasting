@@ -15,7 +15,7 @@ from annotated_text import annotated_text
 from metrics import rmse
 from config import Params
 from utils_streamlit_app import load_numpy, selection_of_experiment
-from utils_streamlit_app import get_color_fed_vs_local
+from utils_streamlit_app import get_color_fed_vs_local, style_dataframe
 
 st.set_page_config(layout="wide")
 
@@ -118,7 +118,7 @@ if (path_experiment_selected is not None):
 
     st.subheader("sensor in Federation vs sensor alone")
     fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+    st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
 
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{path_experiment_selected}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy') and
