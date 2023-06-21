@@ -9,5 +9,6 @@ def run_experiment_batch():
     for json_file in json_files:
         json_path = os.path.join(json_dir, json_file)
         subprocess.run(["python", "main.py", json_path])
+        subprocess.run(["python", "test.py", json_path])
         os.remove(json_path)
 run_experiment_batch()
