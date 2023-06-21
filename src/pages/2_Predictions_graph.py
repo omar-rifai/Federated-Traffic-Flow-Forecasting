@@ -40,12 +40,60 @@ def plot_prediction_graph(experiment_path):
         df[f"y_pred_{label}_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i]])
         df[f"y_pred_{label}_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
 
-        fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
-        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='lines', marker=dict(color='blue'), name='y_true')
-        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse_value:.2f}')
-        fig.add_scatter(x=df['Time'], y=df[f"y_pred_{label}_link_window"], mode='lines', marker=dict(color=color), showlegend=False)
-        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error', marker=dict(color="#FFAB55"))
-        fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
+        std_true = np.std(df['y_true'].loc[params.window_size:])
+        confidence_interval = 1.96 * std_true
+
+        fig = px.line(
+            df, x='Time',
+            y=["Window"],
+            color_discrete_sequence=['black']
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df['y_true'],
+            mode='lines',
+            marker=dict(color='blue'),
+            name='y_true'
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df[f'y_pred_{label}'],
+            mode='markers+lines',
+            marker=dict(color=color),
+            name=f'{label} RMSE : {rmse_value:.2f}'
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df[f"y_pred_{label}_link_window"],
+            mode='lines',
+            marker=dict(color=color),
+            showlegend=False
+        )
+        fig.add_bar(
+            x=df['Time'],
+            y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])),
+            name='Absolute Error',
+            marker=dict(color="#FFAB55")
+        )
+        fig.add_vrect(
+            x0=index[i],
+            x1=index[i + params.window_size - 1],
+            fillcolor='gray',
+            opacity=0.2,
+            line_width=0
+        )
+        if render_confidence_interval:
+            fig.add_scatter(
+                x=np.concatenate([df['Time'], df['Time'][::-1]]),
+                y=np.concatenate([df['y_true'] - confidence_interval, df['y_true'][::-1] + confidence_interval]),
+                fill='toself',
+                fillcolor='rgb(50,100,100)',
+                line=dict(color='#000000'),
+                opacity=0.3,
+                hoverinfo='skip',
+                showlegend=True,
+                name="Confidence Interval"
+            )
         fig.update_xaxes(
             title='Time',
             tickformat='%H:%M',
@@ -67,6 +115,8 @@ def plot_prediction_graph(experiment_path):
     rmse_fed = rmse(y_true[slider, :].flatten(), y_pred_fed[slider, :].flatten())
 
     color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
+
+    render_confidence_interval = st.radio("Render confidence interval", [1, 0], format_func=(lambda x: "Yes" if x == 1 else "No"))
 
     # FEDERATED
     fed_fig = plot_graph(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
