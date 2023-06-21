@@ -154,7 +154,7 @@ if (path_experiment_selected is not None):
     sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
 
     metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
+    multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
     local_node = []
     if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():

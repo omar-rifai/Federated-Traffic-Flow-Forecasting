@@ -39,7 +39,7 @@ if (path_experiment_selected is not None):
             df_local_node.append(local_node)
 
     metrics = list(results['0']["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
+    multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
     st.subheader(f"A comparison between federated and local version on {len(nodes)} sensors")
     st.subheader("_It's a general statistic including all the sensors in the calculation_")

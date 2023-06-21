@@ -191,7 +191,7 @@ if (paths_experiment_selected is not None):
     sensor_select = st.selectbox('Choose the sensor_select', mapping_sensor_with_nodes_model_1.keys())
 
     metrics = list(results_1["0"]["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
+    multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
     federated_node_model_1 = []
     local_node_model_1 = []
