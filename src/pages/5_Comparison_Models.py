@@ -6,6 +6,7 @@ from os import path
 
 import glob
 import json
+from pathlib import PurePath
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -69,10 +70,10 @@ def plot_slider(experiment_path):
 
     model_1_color, model_2_color = get_color_fed_vs_local(np.mean(ae_model_1), np.mean(ae_model_2), superior=False)
 
-    title_model_1 = paths_experiment_selected[0].split("\\")[1]
+    title_model_1 = PurePath(paths_experiment_selected[0]).name
     fig_model_1 = plot_box(f"{title_model_1}", ae_model_1, max_y_value, model_1_color)
 
-    title_model_2 = paths_experiment_selected[1].split("\\")[1]
+    title_model_2 = PurePath(paths_experiment_selected[1]).name
     fig_model_2 = plot_box(f"{title_model_2}", ae_model_2, max_y_value, model_2_color)
 
     with st.spinner('Plotting...'):
@@ -102,7 +103,7 @@ def compare_config(path_file_1, path_file_2):
     return config_1["nodes_to_filter"] == config_2["nodes_to_filter"]
 
 
-def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
+def selection_of_experiment():
     experiments = "./experiments/"  # PATH where all the experiments are saved
     if path_files := glob.glob(f"./{experiments}**/config.json", recursive=True):
 
@@ -151,7 +152,7 @@ def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
                 model_2 = st.radio(
                     "Choose the second model",
                     list(previous_path_file), key="model_2", format_func=format_radio)
-            return [("\\".join(model_1.split("\\")[:-1])), ("\\".join(model_2.split("\\")[:-1]))]
+            return [PurePath(model_1).parent, PurePath(model_2).parent]
         else:
             st.header(":red[Nothing match with your filter]")
             for option in selected_options:
@@ -218,12 +219,12 @@ if (paths_experiment_selected is not None):
     c1_model_1, c2_model_2 = st.columns(2)
     with c1_model_1:
         merged_stats_model_1 = pd.concat((federated_node_model_1, local_node_model_1), axis=0)
-        model_1_name = paths_experiment_selected[0].split("\\")[1]
+        model_1_name = paths_experiment_selected[0].name
         st.subheader(f"{model_1_name}")
         st.table(merged_stats_model_1.style.set_table_styles(style_dataframe(merged_stats_model_1)).format("{:.2f}"))
     with c2_model_2:
         merged_stats_model_2 = pd.concat((federated_node_model_2, local_node_model_2), axis=0)
-        model_2_name = paths_experiment_selected[1].split("\\")[1]
+        model_2_name = paths_experiment_selected[1].name
         st.subheader(f"{model_2_name}")
         st.table(merged_stats_model_2.style.set_table_styles(style_dataframe(merged_stats_model_2)).format("{:.2f}"))
 

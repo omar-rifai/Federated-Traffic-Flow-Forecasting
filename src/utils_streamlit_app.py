@@ -3,6 +3,7 @@ import json
 import numpy as np
 import folium
 import glob
+from pathlib import PurePath
 
 
 #  A dictionary to map the options to their aliases
@@ -106,7 +107,7 @@ def format_radio(path_file_experiment):
     | the length of the time series used {params.time_serie_percentage_length * 100}%"
 
 
-def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
+def selection_of_experiment():
     """
     Create the visual to choose an experiment
 
@@ -153,7 +154,8 @@ def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
                 previous_option = option
 
             select_exp = st.radio("Choose", list(previous_path_file), format_func=format_radio)
-            return ("\\".join(select_exp.split("\\")[:-1]))
+
+            return PurePath(select_exp).parent
         return None
 
 
@@ -221,5 +223,3 @@ def style_dataframe(df):
         )
     )
     return styles
-
-
