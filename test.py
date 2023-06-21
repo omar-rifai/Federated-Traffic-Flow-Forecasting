@@ -40,12 +40,19 @@ with open(PATH_EXPERIMENTS +'test.txt', 'w') as f:
         hidden_size = 32
         num_layers = 6
         output_size = 1
-
+        
         #Load traffic flow dataframe and graph dataframe from PEMS
         df_PeMS, distance = load_PeMS04_flow_data()
         df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, distance, params.init_node, params.n_neighbours,
                                                             params.smooth, params.center_and_reduce,
                                                             params.normalize, params.sort_by_mean)
+        if params.nodes_to_filter ==[]:
+            params.nodes_to_filter = list(df_PeMS.columns[:params.number_of_nodes])
+            with open(f"{PATH_EXPERIMENTS}config.json", 'r') as file:
+                data = json.load(file)
+                data["nodes_to_filter"] = params.nodes_to_filter
+                with open(f"{PATH_EXPERIMENTS}config.json", 'w') as file:
+                    json.dump(data, file, indent=4,  separators=(',', ': '))
         print(params.nodes_to_filter)
         datadict = local_dataset(df = df_PeMS,
                                 nodes = params.nodes_to_filter,
