@@ -3,6 +3,7 @@ import json
 import numpy as np
 import folium
 import glob
+from pathlib import PurePath
 
 
 #  A dictionary to map the options to their aliases
@@ -106,7 +107,7 @@ def format_radio(path_file_experiment):
     | the length of the time series used {params.time_serie_percentage_length * 100}%"
 
 
-def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
+def selection_of_experiment():
     """
     Create the visual to choose an experiment
 
@@ -127,7 +128,7 @@ def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
             "Choose the options you want to use to filter the experiments",
             options,
             format_func=format_option,
-            default=["number_of_nodes", "prediction_horizon"]
+            default=["number_of_nodes", "prediction_horizon", "model"]
         )
 
         if (len(selected_options) > 0):
@@ -153,7 +154,8 @@ def selection_of_experiment():  # sourcery skip: assign-if-exp, extract-method
                 previous_option = option
 
             select_exp = st.radio("Choose", list(previous_path_file), format_func=format_radio)
-            return ("\\".join(select_exp.split("\\")[:-1]))
+
+            return PurePath(select_exp).parent
         return None
 
 
@@ -177,8 +179,8 @@ def create_circle_precision_predict(marker_location, value_percent, map_folium, 
             Hex code HTML
     """
     lat, long = marker_location
-    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
-    folium.Circle(location=[lat + 0.0020, long + 0.0018], color=color, radius=100 * value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
+    # folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
+    folium.Circle(location=[lat + 0.0020, long + 0.0018], color="black", radius=100, fill=True, opacity=1, fill_opacity=1, fill_color=color).add_to(map_folium)
     folium.map.Marker([lat + 0.0022, long + 0.0014], icon=folium.features.DivIcon(html=f"<div style='font-weight:bold; font-size: 15pt; color: black'>{int(value_percent * 100)}%</div>")).add_to(map_folium)
     # folium.Circle(location=[lat,long], color="black", radius=100, fill=True, opacity=1, fill_opacity=0.8, fill_color="white").add_to(map_folium)
     # folium.Circle(location=[lat,long], color=color, radius=100*value_percent, fill=True, opacity=0, fill_opacity=1, fill_color=color).add_to(map_folium)
@@ -190,3 +192,71 @@ def get_color_fed_vs_local(fed_value, local_value, superior=True):
     if (superior):
         return (green, red) if ((fed_value) >= (local_value)) else (red, green)
     return (green, red) if ((fed_value) < (local_value)) else (red, green)
+
+
+def style_dataframe(df):
+    styles = []
+    for i in range(len(df)):
+        if i % 2 == 0:
+            styles.append({
+                'selector': f'tbody tr:nth-child({i+1})',
+                'props': [('background-color', 'rgba(200, 200, 200, 0.8)', ), ('color', 'black')],
+            })
+        else:
+            styles.append({
+                'selector': f'tbody tr:nth-child({i+1})',
+                'props': [('background-color', 'rgba(230, 230, 230, 0.8)'), ('color', 'black')],
+            })
+    styles.extend(
+        (
+            {
+                'selector': 'th',
+                'props': [('font-weight', 'bold'), ('color', 'black')],
+            },
+            {
+                'selector': 'tbody tr > :nth-child(1)',
+                'props': [
+                    ('background-color', 'rgba(160, 100, 170, 0.3)'),
+                    ('color', 'black'),
+                ],
+            },
+        )
+    )
+    return styles
+
+
+def switch_page(page_name: str):
+    """@CREDIT: Zachary Blackwood
+
+    Args:
+        page_name (str):
+
+    Raises:
+        RerunException:
+        ValueError:
+
+    Returns:
+        _type_:
+    """
+    from streamlit.runtime.scriptrunner import RerunData, RerunException
+    from streamlit.source_util import get_pages
+
+    def standardize_name(name: str) -> str:
+        return name.lower().replace("_", " ")
+
+    page_name = standardize_name(page_name)
+
+    pages = get_pages("streamlit_app.py")  # OR whatever your main page is called
+
+    for page_hash, config in pages.items():
+        if standardize_name(config["page_name"]) == page_name:
+            raise RerunException(
+                RerunData(
+                    page_script_hash=page_hash,
+                    page_name=page_name,
+                )
+            )
+
+    page_names = [standardize_name(config["page_name"]) for config in pages.values()]
+
+    raise ValueError(f"Could not find page {page_name}. Must be one of {page_names}")

@@ -15,11 +15,14 @@ from annotated_text import annotated_text
 from metrics import rmse
 from config import Params
 from utils_streamlit_app import load_numpy, selection_of_experiment
-from utils_streamlit_app import get_color_fed_vs_local
+from utils_streamlit_app import get_color_fed_vs_local, style_dataframe
 
 st.set_page_config(layout="wide")
 
 
+#######################################################################
+# Function(s)
+#######################################################################
 def plot_prediction_graph(experiment_path):
     test_set = load_numpy(f"{experiment_path}/test_data_{mapping_sensor_with_nodes[sensor_select]}.npy")
 
@@ -40,12 +43,60 @@ def plot_prediction_graph(experiment_path):
         df[f"y_pred_{label}_link_window"] = np.concatenate([np.repeat(np.nan, params.window_size).reshape(-1, 1), y_pred[i]])
         df[f"y_pred_{label}_link_window"].at[params.window_size - 1] = df['Window'].iloc[params.window_size - 1]
 
-        fig = px.line(df, x='Time', y=["Window"], color_discrete_sequence=['black'])
-        fig.add_scatter(x=df['Time'], y=df['y_true'], mode='lines', marker=dict(color='blue'), name='y_true')
-        fig.add_scatter(x=df['Time'], y=df[f'y_pred_{label}'], mode='markers+lines', marker=dict(color=color), name=f'{label} RMSE : {rmse_value:.2f}')
-        fig.add_scatter(x=df['Time'], y=df[f"y_pred_{label}_link_window"], mode='lines', marker=dict(color=color), showlegend=False)
-        fig.add_bar(x=df['Time'], y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])), name='Absolute Error', marker=dict(color="#FFAB55"))
-        fig.add_vrect(x0=index[i], x1=index[i + params.window_size - 1], fillcolor='gray', opacity=0.2, line_width=0)
+        std_true = np.std(df['y_true'].loc[params.window_size:])
+        confidence_interval = 1.96 * std_true
+
+        fig = px.line(
+            df, x='Time',
+            y=["Window"],
+            color_discrete_sequence=['black']
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df['y_true'],
+            mode='lines',
+            marker=dict(color='blue'),
+            name='y_true'
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df[f'y_pred_{label}'],
+            mode='markers+lines',
+            marker=dict(color=color),
+            name=f'{label} RMSE : {rmse_value:.2f}'
+        )
+        fig.add_scatter(
+            x=df['Time'],
+            y=df[f"y_pred_{label}_link_window"],
+            mode='lines',
+            marker=dict(color=color),
+            showlegend=False
+        )
+        fig.add_bar(
+            x=df['Time'],
+            y=(np.abs(df[f'y_pred_{label}'] - df['y_true'])),
+            name='Absolute Error',
+            marker=dict(color="#FFAB55")
+        )
+        fig.add_vrect(
+            x0=index[i],
+            x1=index[i + params.window_size - 1],
+            fillcolor='gray',
+            opacity=0.2,
+            line_width=0
+        )
+        if render_confidence_interval:
+            fig.add_scatter(
+                x=np.concatenate([df['Time'], df['Time'][::-1]]),
+                y=np.concatenate([df['y_true'] - confidence_interval, df['y_true'][::-1] + confidence_interval]),
+                fill='toself',
+                fillcolor='rgb(50,100,100)',
+                line=dict(color='#000000'),
+                opacity=0.3,
+                hoverinfo='skip',
+                showlegend=True,
+                name="Confidence Interval"
+            )
         fig.update_xaxes(
             title='Time',
             tickformat='%H:%M',
@@ -68,6 +119,8 @@ def plot_prediction_graph(experiment_path):
 
     color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
 
+    render_confidence_interval = st.radio("Render confidence interval", [1, 0], index=1, format_func=(lambda x: "Yes" if x == 1 else "No"))
+
     # FEDERATED
     fed_fig = plot_graph(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
 
@@ -81,7 +134,10 @@ def plot_prediction_graph(experiment_path):
         ("red", "", "#fe7597"), " one because it has a lower RMSE value")
 
     with st.spinner('Plotting...'):
+        col1, col2 = st.columns(2)
+        #  with col1:
         st.plotly_chart(fed_fig, use_container_width=True)
+        #  with col2:
         st.plotly_chart(local_fig, use_container_width=True)
 
 
@@ -104,21 +160,21 @@ if (path_experiment_selected is not None):
     sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
 
     metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
-    multiselect_metrics = st.multiselect('Choose your metric(s)', metrics, ["RMSE", "MAE", "SMAPE", "Superior Pred %"])
+    multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
 
     local_node = []
     if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():
         local_node = results[mapping_sensor_with_nodes[sensor_select]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor alone"])
+        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor in Local"])
 
     federated_node = []
     if "Federated" in results[mapping_sensor_with_nodes[sensor_select]].keys():
         federated_node = results[mapping_sensor_with_nodes[sensor_select]]["Federated"]
         federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["sensor in Federation"])
 
-    st.subheader("sensor in Federation vs sensor alone")
+    st.subheader("sensor in Federation vs sensor in Local")
     fed_local_node = pd.concat((federated_node, local_node), axis=0)
-    st.table(fed_local_node.style.set_table_styles([{'selector': 'th', 'props': [('font-weight', 'bold'), ('color', 'black')]}]).format("{:.2f}"))
+    st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
 
     params = Params(f'{path_experiment_selected}/config.json')
     if (path.exists(f'{path_experiment_selected}/y_true_local_{mapping_sensor_with_nodes[sensor_select]}.npy') and
