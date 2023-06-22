@@ -20,6 +20,9 @@ from utils_streamlit_app import get_color_fed_vs_local, style_dataframe
 st.set_page_config(layout="wide")
 
 
+#######################################################################
+# Function(s)
+#######################################################################
 def plot_prediction_graph(experiment_path):
     test_set = load_numpy(f"{experiment_path}/test_data_{mapping_sensor_with_nodes[sensor_select]}.npy")
 
@@ -116,7 +119,7 @@ def plot_prediction_graph(experiment_path):
 
     color_fed, color_local = get_color_fed_vs_local(rmse_fed, rmse_local, superior=False)
 
-    render_confidence_interval = st.radio("Render confidence interval", [1, 0], format_func=(lambda x: "Yes" if x == 1 else "No"))
+    render_confidence_interval = st.radio("Render confidence interval", [1, 0], index=1, format_func=(lambda x: "Yes" if x == 1 else "No"))
 
     # FEDERATED
     fed_fig = plot_graph(color_fed, 'Federated', "Federated Prediction", y_pred_fed, rmse_fed, slider)
@@ -131,7 +134,10 @@ def plot_prediction_graph(experiment_path):
         ("red", "", "#fe7597"), " one because it has a lower RMSE value")
 
     with st.spinner('Plotting...'):
+        col1, col2 = st.columns(2)
+        #  with col1:
         st.plotly_chart(fed_fig, use_container_width=True)
+        #  with col2:
         st.plotly_chart(local_fig, use_container_width=True)
 
 
@@ -159,14 +165,14 @@ if (path_experiment_selected is not None):
     local_node = []
     if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():
         local_node = results[mapping_sensor_with_nodes[sensor_select]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor alone"])
+        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor in Local"])
 
     federated_node = []
     if "Federated" in results[mapping_sensor_with_nodes[sensor_select]].keys():
         federated_node = results[mapping_sensor_with_nodes[sensor_select]]["Federated"]
         federated_node = pd.DataFrame(federated_node, columns=multiselect_metrics, index=["sensor in Federation"])
 
-    st.subheader("sensor in Federation vs sensor alone")
+    st.subheader("sensor in Federation vs sensor in Local")
     fed_local_node = pd.concat((federated_node, local_node), axis=0)
     st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
 

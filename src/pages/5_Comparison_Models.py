@@ -118,7 +118,9 @@ def selection_of_experiment():
                 )
             }
         }
+
         options.remove("number_of_nodes")
+
         selected_options = st.multiselect(
             "Choose the options you want to use to filter the experiments",
             options,
@@ -219,13 +221,17 @@ if (paths_experiment_selected is not None):
     c1_model_1, c2_model_2 = st.columns(2)
     with c1_model_1:
         merged_stats_model_1 = pd.concat((federated_node_model_1, local_node_model_1), axis=0)
-        model_1_name = paths_experiment_selected[0].name
+        model_1_name = config_1["model"]
+        st.divider()
         st.subheader(f"{model_1_name}")
+        st.divider()
         st.table(merged_stats_model_1.style.set_table_styles(style_dataframe(merged_stats_model_1)).format("{:.2f}"))
     with c2_model_2:
         merged_stats_model_2 = pd.concat((federated_node_model_2, local_node_model_2), axis=0)
-        model_2_name = paths_experiment_selected[1].name
+        model_2_name = config_2["model"]
+        st.divider()
         st.subheader(f"{model_2_name}")
+        st.divider()
         st.table(merged_stats_model_2.style.set_table_styles(style_dataframe(merged_stats_model_2)).format("{:.2f}"))
 
     params_model_1 = Params(f'{path_model_1}/config.json')

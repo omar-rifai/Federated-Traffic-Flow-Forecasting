@@ -19,15 +19,10 @@ from utils_streamlit_app import selection_of_experiment
 
 st.set_page_config(layout="wide")
 
-height = []
-width = []
-for m in get_monitors():
-    height.append(m.height)
-    width.append(m.width)
 
-height = min(height)
-width = min(width)
-
+#######################################################################
+# Constant(s)
+#######################################################################
 SEATTLE_ROADS = [
     [47.679470, -122.315626],
     [47.679441, -122.306665],
@@ -45,10 +40,18 @@ SEATTLE_ROADS = [
     [47.6974488132659, -122.29057907732675]
 ]
 
+height = []
+width = []
+for m in get_monitors():
+    height.append(m.height)
+    width.append(m.width)
+
+HEIGHT = min(height)
+WIDTH = min(width)
+
 ###############################################################################
 # Map Folium
 ###############################################################################
-# Create maps centered on Seattle
 seattle_map_global = folium.Map(location=[47.6776, -122.30064], zoom_start=15, zoomSnap=0.25)
 seattle_map_local = folium.Map(location=[47.67763, -122.30064], zoom_start=15, zoomSnap=0.25)
 
@@ -60,7 +63,7 @@ def plot_map(experiment_path):
     index = pd.to_datetime(index, format='%Y-%m-%dT%H:%M:%S.%f')
 
     slider = st.slider('Select the step (a step equal 5min)?', 0, len(index) - params.prediction_horizon - params.window_size - 1, 0)
-    st.header(f"| {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime('%Hh%Mmin) |')}")
+    st.header(f"| {index[slider+params.window_size].strftime(f'Day: %Y-%m-%d | Time prediction: {int(params.prediction_horizon*5/60)}h (%Hh%Mmin')} to {index[slider + params.window_size + params.prediction_horizon].strftime(f'%Hh%Mmin) | Step : {slider} |')}")
 
     def plot_map_slider(y_true, y_pred, y_pred_fed, i, coords):
         maape_computed_local = 1 - (maape(y_true[i, :].flatten(), y_pred[i, :].flatten())) / 100.0
@@ -85,14 +88,13 @@ def plot_map(experiment_path):
         " is better than the ",
         ("red", "", "#fe7597"), " one.")
 
-    # Create a table
     col1, col2 = st.columns((0.5, 0.5), gap="small")
     with col1:
         col1.header('Federated model results')
-        folium_static(seattle_map_global, width=width / 2 - 300)
+        folium_static(seattle_map_global, width=WIDTH / 2 - 300)  # To fix the overlapping effect (handmade solution)
     with col2:
         col2.header('Local models results')
-        folium_static(seattle_map_local, width=width / 2 - 300)
+        folium_static(seattle_map_local, width=WIDTH / 2 - 300)  # To fix the overlapping effect (handmade solution)
 
 #######################################################################
 # Main

@@ -19,7 +19,7 @@ st.set_page_config(layout="wide")
 
 
 ###############################################################################
-# Functions
+# Function(s)
 ###############################################################################
 def remove_outliers(data, threshold=1.5):
     q1 = np.percentile(data, 25)
@@ -71,9 +71,9 @@ def plot_slider(experiment_path):
     fed_fig = plot_box("Federated Prediction", ae_fed, max_y_value, color_fed)
 
     # LOCAL
-    local_fig = plot_box("Alone Prediction", ae_local, max_y_value, color_local)
+    local_fig = plot_box("Local Prediction", ae_local, max_y_value, color_local)
     with st.spinner('Plotting...'):
-        st.subheader(f"Comparison between Federation and local version on sensor {sensor_select} (Absolute Error)")
+        st.subheader(f"Comparison between Federation and Local version on sensor {sensor_select} (Absolute Error)")
         _, c2_fed_fig, c3_local_fig, _ = st.columns((1, 1, 1, 1))
         with c2_fed_fig:
             st.plotly_chart(fed_fig, use_container_width=False)
@@ -98,7 +98,7 @@ if (path_experiment_selected is not None):
     for node in results.keys():
         mapping_sensor_with_nodes[config["nodes_to_filter"][int(node)]] = node
 
-    sensor_select = st.selectbox('Choose the sensor_select', mapping_sensor_with_nodes.keys())
+    sensor_select = st.selectbox('Choose the sensor', mapping_sensor_with_nodes.keys())
 
     metrics = list(results[mapping_sensor_with_nodes[sensor_select]]["local_only"].keys())
     multiselect_metrics = ["RMSE", "MAE", "SMAPE", "Superior Pred %"]
@@ -111,9 +111,9 @@ if (path_experiment_selected is not None):
     local_node = []
     if "local_only" in results[mapping_sensor_with_nodes[sensor_select]].keys():
         local_node = results[mapping_sensor_with_nodes[sensor_select]]["local_only"]
-        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor alone"])
+        local_node = pd.DataFrame(local_node, columns=multiselect_metrics, index=["sensor in Local"])
 
-    st.subheader("sensor in Federation vs sensor alone")
+    st.subheader("sensor in Federation vs sensor in Local")
     fed_local_node = pd.concat((federated_node, local_node), axis=0)
     st.table(fed_local_node.style.set_table_styles(style_dataframe(fed_local_node)).format("{:.2f}"))
 
