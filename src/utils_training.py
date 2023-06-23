@@ -234,3 +234,29 @@ def testmodel(best_model, test_loader, path=None, meanstd_dict =None, sensor_ord
         y_pred = predictions[:]*maximum
         y_true = actuals[:]*maximum 
     return y_true, y_pred
+
+
+def prepare_training_configs(config_file_path, PATH_EXPERIMENTS, params, df_PeMS):
+    """
+    Manually fill the params.nodes_to_filter value if left unspecified by the user
+    ***REMARK FOR DEVS*** this seems unecessary, we might want to consider a lighter design
+    """
+    
+    from shutil import copy
+    
+    copy(
+        config_file_path,
+        PATH_EXPERIMENTS / "config.json",
+    )
+
+    if params.nodes_to_filter == []:
+
+            params.nodes_to_filter = list(df_PeMS.columns[:params.number_of_nodes])
+
+            with open(PATH_EXPERIMENTS  / "config.json", 'r') as file:
+            
+                data = json.load(file)
+                data["nodes_to_filter"] = params.nodes_to_filter
+            
+                with open(PATH_EXPERIMENTS / "config.json", 'w') as file:
+                    json.dump(data, file, indent=4,  separators=(',', ': '))

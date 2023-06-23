@@ -1,13 +1,13 @@
 
 from os import makedirs
-from shutil import copy
+
 import torch
 import importlib
 import contextlib
 import json 
 
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset
-from src.utils_training import train_model
+from src.utils_training import train_model, prepare_training_configs
 from src.utils_fed import fed_training_plan
 
 import src.config
@@ -33,36 +33,30 @@ PATH_EXPERIMENTS = Path("experiments") / params.save_model_path
 
 makedirs(PATH_EXPERIMENTS, exist_ok=True)
 
-copy(
-    sys.argv[1],
-    PATH_EXPERIMENTS / "config.json",
-)
 
 with open(PATH_EXPERIMENTS / "train.txt", 'w') as f:
     with contextlib.redirect_stdout(src.config.Tee(f, sys.stdout)):
 
-        module_name = 'src.models'
         class_name = params.model
-        module = importlib.import_module(module_name)
+        module = importlib.import_module('src.models')
         model = getattr(module, class_name)
 
 
         #Load traffic flow dataframe and graph dataframe from PEMS
+
         df_PeMS, distance = load_PeMS04_flow_data()
-        df_PeMS = df_PeMS[:int(len(df_PeMS)*params.time_serie_percentage_length)]
-        print(len(df_PeMS))
-        df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS, distance, params.init_node, params.n_neighbours,
+        
+        
+
+        df_PeMS, adjmat, meanstd_dict = preprocess_PeMS_data(df_PeMS,  params.time_serie_percentage_length, 
+                                                             distance, params.init_node, params.n_neighbours,
                                                             params.smooth, params.center_and_reduce,
                                                             params.normalize, params.sort_by_mean)
-        if params.nodes_to_filter ==[]:
-            params.nodes_to_filter = list(df_PeMS.columns[:params.number_of_nodes])
-            with open(PATH_EXPERIMENTS  / "config.json", 'r') as file:
-                data = json.load(file)
-                data["nodes_to_filter"] = params.nodes_to_filter
-                with open(PATH_EXPERIMENTS / "config.json", 'w') as file:
-                    json.dump(data, file, indent=4,  separators=(',', ': '))
-            
-        print(params.nodes_to_filter)
+        
+
+        prepare_training_configs(config_file_path, PATH_EXPERIMENTS, params, df_PeMS)
+        
+    
         datadict = local_dataset(df = df_PeMS,
                                 nodes = params.nodes_to_filter,
                                 window_size=params.window_size,
