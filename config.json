@@ -18,6 +18,10 @@
     "epoch_local_retrain_after_federation": 100,
     "learning_rate": 0.001,
     "model": "LSTMModel",
-    "save_model_path": "/LSTMModel/"
+    "save_model_path": "/LSTMModel/",
+    "model_input_size" : 1,
+    "model_hidden_size" : 32,
+    "model_num_layers" : 6,
+    "model_output_size" : 1
 }
 

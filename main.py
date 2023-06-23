@@ -46,11 +46,6 @@ with open(PATH_EXPERIMENTS / "train.txt", 'w') as f:
         module = importlib.import_module(module_name)
         model = getattr(module, class_name)
 
-        input_size = 1
-        hidden_size = 32
-        num_layers = 6
-        output_size = 1
-
 
         #Load traffic flow dataframe and graph dataframe from PEMS
         df_PeMS, distance = load_PeMS04_flow_data()
@@ -81,7 +76,7 @@ with open(PATH_EXPERIMENTS / "train.txt", 'w') as f:
             val_losses = {}
 
             for node in range(params.number_of_nodes):
-                local_model = model(input_size, hidden_size, output_size, num_layers)
+                local_model = model(params.model_input_size, params.model_hidden_size, params.model_output_size, params.model_num_layers)
 
                 data_dict = datadict[node]
                 local_model, train_losses[node], val_losses[node] = train_model(local_model, data_dict['train'], data_dict['val'], 
@@ -91,7 +86,7 @@ with open(PATH_EXPERIMENTS / "train.txt", 'w') as f:
 
         # # Federated Learning Experiment
         if params.num_epochs_local_federation:
-            main_model = model(input_size, hidden_size, output_size, num_layers)
+            main_model = model(params.model_input_size, params.model_hidden_size, params.model_output_size, params.model_num_layers)
 
             fed_training_plan(main_model, datadict, params.communication_rounds, params.num_epochs_local_federation, model_path = PATH_EXPERIMENTS,)
             
@@ -103,9 +98,9 @@ with open(PATH_EXPERIMENTS / "train.txt", 'w') as f:
 
             for node in range(params.number_of_nodes):
                 print(f'Retraining the federated model locally on node {node} for {params.epoch_local_retrain_after_federation} epochs')
-                new_local_model = model(input_size, hidden_size, output_size, num_layers)
+                new_local_model = model(params.model_input_size, params.model_hidden_size, params.model_output_size, params.model_num_layers)
                 model_path= f'{PATH_EXPERIMENTS}bestmodel_node{node}.pth'
-                local_model = model(input_size, hidden_size, output_size, num_layers)
+                local_model = model(params.model_input_size, params.model_hidden_size, params.model_output_size, params.model_num_layers)
                 local_model.load_state_dict(torch.load(model_path))
                 torch.save(local_model.state_dict(), PATH_EXPERIMENTS / f"oldmodel_node{node}.pth")
 
