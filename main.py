@@ -6,10 +6,10 @@ import importlib
 import contextlib
 import json 
 
-from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset, plot_prediction
-from src.utils_training import train_model, testmodel
+from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset
+from src.utils_training import train_model
 from src.utils_fed import fed_training_plan
-from src.metrics import calculate_metrics
+
 import src.config
 import sys
 
