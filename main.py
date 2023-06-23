@@ -4,7 +4,6 @@ from os import makedirs
 import torch
 import importlib
 import contextlib
-import json 
 
 from src.utils_data import load_PeMS04_flow_data, preprocess_PeMS_data, local_dataset
 from src.utils_training import train_model, prepare_training_configs
